@@ -43,7 +43,7 @@
         /// <summary>
         /// 股票涨幅
         /// </summary>
-        public decimal PriceVariation { get; set; }
+        public decimal Gain { get; set; }
 
         /// <summary>
         /// 成交量
@@ -59,6 +59,11 @@
         /// 换手率
         /// </summary>
         public decimal? TurnoverRate { get; set; }
+
+        /// <summary>
+        /// 是否ST
+        /// </summary>
+        public bool IsST { get; set; }
 
         public Stock Stock { get; set; }
     }

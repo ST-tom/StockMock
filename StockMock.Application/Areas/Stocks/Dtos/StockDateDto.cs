@@ -55,6 +55,11 @@ namespace StockMock.Application.Areas.Stocks.Dtos
         /// </summary>
         public decimal? TurnoverRate { get; set; }
 
+        /// <summary>
+        /// 是否ST
+        /// </summary>
+        public bool IsST { get; set; } = false;
+
         public StockDateDto()
         {
 

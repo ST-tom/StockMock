@@ -11,7 +11,6 @@ namespace StockMock.Infrastructure.Utils
         public async static Task<IEnumerable<T>> ReadExcelAsync <T>(IFormFile file, ExcelType excelType = ExcelType.XLSX, bool hasHeader = true, CancellationToken cancellationToken = default)
             where T : class, new()
         {
-            // 1. 验证文件
             if (file == null || file.Length == 0)
                 throw new ArgumentException("请上传有效的Excel文件");
 

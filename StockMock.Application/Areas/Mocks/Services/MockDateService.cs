@@ -26,7 +26,7 @@ namespace StockMock.Application.Areas.Mocks.Services
                 throw new BusinessExcption(validationResult.Errors.ToMessage());
         }
 
-        public async Task<DateTime> AddMockDate(MockDateDto dto)
+        public async Task AddMockDate(MockDateDto dto)
         {
             await ValidateAsync(dto);
 
@@ -34,7 +34,7 @@ namespace StockMock.Application.Areas.Mocks.Services
             if (mock == null)
                 throw new BusinessExcption("未找到对应的模拟股票操作数据");
 
-            if (mock.Status != MockStatus.新建 || mock.Status != MockStatus.模拟中)
+            if (mock.Status != MockStatus.created || mock.Status != MockStatus.mocking)
                 throw new BusinessExcption("模拟股票操作数据状态不允许继续操作");
 
             if(!await _dayService.IsWorkDayAsync(dto.Date))
@@ -66,45 +66,39 @@ namespace StockMock.Application.Areas.Mocks.Services
                     PreClosingPrice = preStockDate?.ClosingPrice,
                     PositionQuantity = dto.PositionQuantity,
                     PositionAmount = dto.PositionQuantity * stockDate.ClosingPrice,
-                    PriceVariation = preStockDate != null ?  Math.Round((stockDate.ClosingPrice - preStockDate.ClosingPrice) / preStockDate.ClosingPrice * 100, 2) : stockDate.PriceVariation,
+                    Gain = preStockDate != null ?  Math.Round((stockDate.ClosingPrice - preStockDate.ClosingPrice) / preStockDate.ClosingPrice * 100, 2) : stockDate.Gain,
                     PositionRate = Math.Round(dto.PositionQuantity / mock.MaxPositionQuantity * 100m, 2),
                     PositionRateType = dto.PositionRateType!.Value,
                     Prediction = dto.Prediction!.Value,
-
                 };
 
-                var actualPrePredictionType = CalPredictionType();
+                var actualPrePredictionType = CalPredictionType(entity.Gain, stock.BoardType.GetMaxGain());              
+                entity.PredictionDeviationValue = Math.Abs(preMockDate.Prediction - actualPrePredictionType);
+
+                return entity;
             }
         }
 
-        private PredictionType CalPredictionType(decimal priceVariation, int maxPriceVariation = 10)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="gain">涨幅</param>
+        /// <param name="maxGain">最大涨幅</param>
+        /// <returns></returns>
+        private PredictionType CalPredictionType(decimal gain, decimal maxGain = 10)
         {
-            var dicPredictionType = typeof(PredictionType).ToDictionary().OrderDescending();
+            decimal[] coefficients = { 1, 0.7m, 0.3m, 0.1m, -0.1m, -0.3m, -0.7m, -1 };
+            var dicPredictionType = typeof(PredictionType).ToDictionary().OrderDescending().ToDictionary();
 
-            if (priceVariation >= maxPriceVariation * 1)
-                return PredictionType.涨停;
-
-            if (priceVariation >= maxPriceVariation * 0.7m)
-                return PredictionType.大涨;
-
-            if (priceVariation >= maxPriceVariation * 0.3m)
-                return PredictionType.中涨;
-
-            if (priceVariation >= maxPriceVariation * 0.1m)
-                return PredictionType.小涨;
-
-            if (priceVariation > maxPriceVariation * -0.1m)
-                return PredictionType.微动;
-
-            if (priceVariation > maxPriceVariation * -0.3m)
-                return PredictionType.小跌;
-
-            if (priceVariation > maxPriceVariation * -0.7m)
-                return PredictionType.中跌;
-
-            if (priceVariation > maxPriceVariation * -1)
-                return PredictionType.大跌;
-
+            for (int i = 0; i < coefficients.Length; i++)
+            {
+                var coefficient = coefficients[i];
+                if (coefficient > 0 ? (gain >= maxGain * coefficient) : (gain > maxGain * coefficient))
+                {
+                    if (Enum.TryParse<PredictionType>(dicPredictionType[i].ToString(), out var predictionType))
+                        return predictionType;
+                }
+            }
             return PredictionType.跌停;
         }
     }

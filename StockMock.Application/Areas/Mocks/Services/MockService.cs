@@ -55,7 +55,7 @@ namespace StockMock.Application.Areas.Mocks.Services
                     StockId = stock.Id,
                     StockCode = stock.Code,
                     StockName = stock.Name,
-                    Status = MockStatus.新建,
+                    Status = MockStatus.created,
                     MockDate = dto.MockDate,
                 };
 
@@ -85,13 +85,13 @@ namespace StockMock.Application.Areas.Mocks.Services
             if (old == null)
                 throw new BusinessExcption("该模拟数据不存在");
 
-            dto.Status = MockStatus.作废;
-            if (old.Status != dto.Status)
-            {
-                old.Status = dto.Status;
-                _context.Mocks.Update(old);
-                await _context.SaveChangesAsync(_cancellationToken);
-            }
+            if (old.Status == MockStatus.canceled)
+                throw new BusinessExcption("该模拟数据已取消，无法重复取消");
+
+            dto.Status = MockStatus.canceled;
+            old.Status = dto.Status;
+            _context.Mocks.Update(old);
+            await _context.SaveChangesAsync(_cancellationToken);
         }
 
         public async Task FinishAsync(MockDto dto)
@@ -101,7 +101,10 @@ namespace StockMock.Application.Areas.Mocks.Services
             if (old == null)
                 throw new BusinessExcption("该模拟数据不存在");
 
-            dto.Status = MockStatus.模拟结束;
+            if(old.Status == MockStatus.canceled)
+                throw new BusinessExcption("该模拟数据已取消，无法置为完成");
+
+            dto.Status = MockStatus.finished;
             if (old.Status != dto.Status)
             {
                 old.Status = dto.Status;
@@ -117,13 +120,13 @@ namespace StockMock.Application.Areas.Mocks.Services
             if (old == null)
                 throw new BusinessExcption("该模拟数据不存在");
 
-            dto.Status = MockStatus.模拟中;
-            if (old.Status != dto.Status)
-            {
-                old.Status = dto.Status;
-                _context.Mocks.Update(old);
-                await _context.SaveChangesAsync(_cancellationToken);
-            }
+            if (old.Status != MockStatus.finished)
+                throw new BusinessExcption("该模拟数据未完成，无法重新开始");
+
+            dto.Status = MockStatus.mocking;
+            old.Status = dto.Status;
+            _context.Mocks.Update(old);
+            await _context.SaveChangesAsync(_cancellationToken);
         }
 
         public async Task<PageList<Mock>> LoadAsync(MockPageDto pageDto)

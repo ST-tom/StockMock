@@ -72,7 +72,7 @@ namespace StockMock.Domain.Entities.Mocks
         /// <summary>
         /// 股票涨幅
         /// </summary>
-        public decimal PriceVariation { get; set; }
+        public decimal Gain { get; set; }
 
         /// <summary>
         /// 仓位比例
@@ -93,6 +93,8 @@ namespace StockMock.Domain.Entities.Mocks
         /// 预测偏离度
         /// </summary>
         public int? PredictionDeviationValue { get; set; }
+
+        public int MockResult { get; set; }
 
         public Stock Stock { get; set; }
 

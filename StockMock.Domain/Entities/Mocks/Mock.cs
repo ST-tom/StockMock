@@ -1,5 +1,6 @@
 ﻿using StockMock.Domain.Common;
 using StockMock.Domain.Entities.Stocks;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StockMock.Domain.Entities.Mocks
@@ -10,7 +11,7 @@ namespace StockMock.Domain.Entities.Mocks
         /// 股票编号
         /// </summary>
         public long StockId { get; set; }
-        
+
         /// <summary>
         /// 股票代码
         /// </summary>
@@ -82,31 +83,15 @@ namespace StockMock.Domain.Entities.Mocks
         public Stock Stock { get; set; }
     }
 
-    public class MockStatus : StringEnumeration
+    public enum MockStatus
     {
-        protected MockStatus(string key, string name) : base(key, name)
-        {
-
-        }
-
-        public static MockStatus 新建 = new MockStatus("created", "新建");
-        public static MockStatus 作废 = new MockStatus("canceled", "作废");
-        public static MockStatus 模拟中 = new MockStatus("mocking", "模拟中");
-        public static MockStatus 模拟结束 = new MockStatus("finished", "模拟结束");
-
-        public static IEnumerable<MockStatus> GetAll()
-        {
-            return GetAll<MockStatus>();
-        }
-
-        public static MockStatus FromName(string roleString)
-        {
-            return FromName<MockStatus>(roleString);
-        }
-
-        public static MockStatus FromKey(string key)
-        {
-            return FromKey<MockStatus>(key);
-        }
+        [Description("新建")]
+        created,
+        [Description("作废")]
+        canceled,
+        [Description("模拟中")]
+        mocking,
+        [Description("模拟结束")]
+        finished
     }
 }
