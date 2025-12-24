@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using StockMock.Application.Areas.Configs.Dtos;
 using StockMock.Application.Base;
 using StockMock.Application.Extensions;
@@ -12,14 +13,11 @@ using StockMock.Infrastructure.Utils;
 
 namespace StockMock.Application.Areas.Configs.Services
 {
-    public class DayService : BaseService
+    public class DayService(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager localCache, ILogger<DayService> logger) : BaseService<DayService>(context, mapper, cancellationToken, localCache, logger)
     {
         public const string cacheKeyWorkDay = "configs.day.workday";
 
-        public DayService(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager localCache) : base(context, mapper, cancellationToken, localCache)
-        {
-
-        }
+        #region 增删改查
 
         private async Task ValidateAsync(DayDto dto, bool isValidateName = false)
         {
@@ -27,7 +25,7 @@ namespace StockMock.Application.Areas.Configs.Services
             var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new BusinessExcption(validationResult.Errors.ToMessage());
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
         }
 
         public async Task AddAsync(DayDto dto)
@@ -36,7 +34,7 @@ namespace StockMock.Application.Areas.Configs.Services
 
             var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, _cancellationToken);
             if (old != null)
-                throw new BusinessExcption("该日期已存在，请勿重复添加");
+                throw new ApplicationExcption("该日期已存在，请勿重复添加");
 
             _context.Days.Add(_mapper.Map<Day>(dto));
             await _context.SaveChangesAsync(_cancellationToken);
@@ -46,12 +44,12 @@ namespace StockMock.Application.Areas.Configs.Services
         public async Task<DayDto> GetAsync(long id)
         {
             if (id <= 0)
-                throw new BusinessExcption("Id不合法");
+                throw new ApplicationExcption("Id不合法");
 
             var old = await _context.Days.FindAsync(id, _cancellationToken);
 
             if (old == null)
-                throw new BusinessExcption("该日期不存在");
+                throw new ApplicationExcption("该日期不存在");
 
             return _mapper.Map<DayDto>(old);
         }
@@ -62,7 +60,7 @@ namespace StockMock.Application.Areas.Configs.Services
 
             var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, _cancellationToken);
             if (old == null)
-                throw new BusinessExcption("该日期不存在，请先添加");
+                throw new ApplicationExcption("该日期不存在，请先添加");
 
             if (old.IsWorkDay != dto.IsWorkDay)
             {
@@ -74,6 +72,16 @@ namespace StockMock.Application.Areas.Configs.Services
             }
         }
 
+        #endregion
+
+        #region 批量生成当前日期的全年数据
+
+        /// <summary>
+        /// 批量生成当前日期的全年数据
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationExcption"></exception>
         public async Task BuildYearDaysAsync(DayDto dto)
         {
             await ValidateAsync(dto);
@@ -82,11 +90,11 @@ namespace StockMock.Application.Areas.Configs.Services
             var dayDic = await _context.Days.Where(e => e.Date.Year == year).ToDictionaryAsync(e => e.Date, _cancellationToken);
 
             if (dayDic.Count == 0)
-                throw new BusinessExcption("该年份没有节日数据，请先添加特殊日期数据");
+                throw new ApplicationExcption("该年份没有节日数据，请先添加特殊日期数据");
 
             var length = DateTime.IsLeapYear(year) ? 366 : 365;
             if (dayDic.Count == length)
-                throw new BusinessExcption("该年份已有日期数据，请勿重复添加");
+                throw new ApplicationExcption("该年份已有日期数据，请勿重复添加");
 
             var date = new DateOnly(year, 1, 1);
             for (int i = 0; i < length - 1; i++)
@@ -106,13 +114,23 @@ namespace StockMock.Application.Areas.Configs.Services
             await InitCacheAsync();
         }
 
+        #endregion
+
+        #region 分页查询
+
+        /// <summary>
+        /// 分页查询
+        /// </summary>
+        /// <param name="pageDto"></param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationExcption"></exception>
         public async Task<PageList<Day>> LoadAsync(DayPageDto pageDto)
         {
             var validator = new DayPageDtoValidator();
             var validationResult = await validator.ValidateAsync(pageDto, _cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new BusinessExcption(validationResult.Errors.ToMessage());
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
 
             var queryable = _context.Days.Where(pageDto.GetWhereLamda());
             var pageList = await pageDto.LoadAsync(queryable, _cancellationToken);
@@ -120,12 +138,24 @@ namespace StockMock.Application.Areas.Configs.Services
             return pageList;
         }
 
+        #endregion
+
+        #region 工作日相关
+
+        /// <summary>
+        /// 初始化最近2年工作日缓存
+        /// </summary>
+        /// <returns></returns>
         public async Task InitCacheAsync()
         {
             var days = await _context.Days.Where(e => e.Date > DateTimeUtil.GetLastYear() && e.IsWorkDay).ToListAsync(_cancellationToken);
             _loaclCache.Set(cacheKeyWorkDay, days);
         }
 
+        /// <summary>
+        /// 获取工作日
+        /// </summary>
+        /// <returns></returns>
         public async ValueTask<List<Day>> GetWorkDayListAsync()
         {
             var days = _loaclCache.Get<List<Day>>(cacheKeyWorkDay);
@@ -138,35 +168,53 @@ namespace StockMock.Application.Areas.Configs.Services
             return days;
         }
 
+        /// <summary>
+        /// 判断是否是工作日
+        /// </summary>
+        /// <param name="date"></param>
+        /// <returns></returns>
         public async ValueTask<bool> IsWorkDayAsync(DateOnly date)
         {
             var days = await GetWorkDayListAsync();
             var day = days.FirstOrDefault(e => e.Date == date);
             if (day == null)
-                throw new BusinessExcption("该日期不存在，请先添加");
+                return false;
 
             return !day.IsWorkDay;
         }
 
-        public async ValueTask<bool> IsWorkDay(DateTime date)
+        /// <summary>
+        /// 判断是否是工作日
+        /// </summary>
+        /// <param name="date"></param>
+        /// <returns></returns>
+        public async ValueTask<bool> IsWorkDayAsync(DateTime date)
         {
             var days = await GetWorkDayListAsync();
             var day = days.FirstOrDefault(e => e.Date == date.ToDateOnly());
             if (day == null)
-                throw new BusinessExcption("该日期不存在，请先添加");
+                return false;
 
             return !day.IsWorkDay;
         }
 
+        /// <summary>
+        /// 获取指定日期的前一个工作日
+        /// </summary>
+        /// <param name="date"></param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationExcption"></exception>
         public async ValueTask<DateOnly> GetPreWorkDayAsync(DateOnly date)
         {
             var days = await GetWorkDayListAsync();
             var dayIndex = days.FindIndex(e => e.Date == date);
             if (dayIndex == -1)
-                throw new BusinessExcption("该日期不存在，请先添加");
+                throw new ApplicationExcption("该日期不存在，请先添加或者非工作日");
 
             var preDay = days[dayIndex - 1];
             return preDay.Date;
         }
+
+        #endregion
     }
 }

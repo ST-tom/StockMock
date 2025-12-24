@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36301.6
+# Visual Studio Version 18
+VisualStudioVersion = 18.1.11312.151 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StockMock.Web", "StockMock.Web\StockMock.Web.csproj", "{681685EE-1A5F-4057-9F2B-33031D02C739}"
 EndProject
@@ -15,6 +15,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Apps", "Apps", "{11788F35-BF56-46EF-A8CE-D83A56C66D96}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{99E5CD5B-7EC8-4097-ACD3-0559D58B3A4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +45,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{681685EE-1A5F-4057-9F2B-33031D02C739} = {11788F35-BF56-46EF-A8CE-D83A56C66D96}
+		{70BFF637-397F-4CBB-814D-00558CB9BDAD} = {99E5CD5B-7EC8-4097-ACD3-0559D58B3A4C}
+		{0BC774F3-C658-41C7-A545-427BE0459A23} = {99E5CD5B-7EC8-4097-ACD3-0559D58B3A4C}
+		{FE5CC7EB-4183-4180-ADA1-032B0D6FAEBA} = {99E5CD5B-7EC8-4097-ACD3-0559D58B3A4C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {32AD0A9B-A6F8-4A99-B61F-20A1318EC61E}

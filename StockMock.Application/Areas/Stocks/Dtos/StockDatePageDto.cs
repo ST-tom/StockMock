@@ -2,6 +2,7 @@
 using StockMock.Application.Base;
 using StockMock.Application.Extensions;
 using StockMock.Domain.Entities.Stocks;
+using StockMock.Infrastructure.Extensions;
 using System.Linq.Expressions;
 
 namespace StockMock.Application.Areas.Stocks.Dtos

@@ -85,6 +85,8 @@ namespace StockMock.Domain.Entities.Mocks
 
     public enum MockStatus
     {
+        [Description("未知")]
+        unknow,
         [Description("新建")]
         created,
         [Description("作废")]

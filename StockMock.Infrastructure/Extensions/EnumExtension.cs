@@ -55,5 +55,17 @@ namespace StockMock.Infrastructure.Extensions
             }
             return dic;
         }
+       
+        public static int? ToInt(this Enum value, int? defaultValue = null)
+        {
+            try
+            {
+                return Convert.ToInt32(value);
+            }
+            catch (Exception)
+            {
+                return defaultValue;
+            }
+        }
     }
 }

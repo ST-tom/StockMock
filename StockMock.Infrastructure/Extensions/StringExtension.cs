@@ -1,4 +1,4 @@
-﻿namespace StockMock.Application.Extensions
+﻿namespace StockMock.Infrastructure.Extensions
 {
     public static class StringExtension
     {

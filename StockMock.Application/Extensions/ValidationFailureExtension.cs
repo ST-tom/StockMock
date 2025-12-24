@@ -1,4 +1,5 @@
 ﻿using FluentValidation.Results;
+using StockMock.Infrastructure.Extensions;
 
 namespace StockMock.Application.Extensions
 {

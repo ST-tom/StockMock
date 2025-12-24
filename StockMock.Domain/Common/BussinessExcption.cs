@@ -1,22 +1,22 @@
 ﻿namespace StockMock.Domain.Common
 {
-    public class BusinessExcption : Exception
+    public class ApplicationExcption : Exception
     {
-        public BusinessExcption() : base()
+        public ApplicationExcption() : base()
         { 
         }
 
-        public BusinessExcption(string message) : base(message)
+        public ApplicationExcption(string message) : base(message)
         { 
         }
 
-        public BusinessExcption(string message, Exception innerException) : base(message, innerException)
+        public ApplicationExcption(string message, Exception innerException) : base(message, innerException)
         {
         }
 
-        public static BusinessExcption Null(string text)
+        public static ApplicationExcption Null(string text)
         {
-            throw new BusinessExcption($"{text}不能为空");
+            throw new ApplicationExcption($"{text}不能为空");
         }
     }
 }

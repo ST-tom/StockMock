@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using StockMock.Application.Areas.AccountStocks.Dtos;
 using StockMock.Application.Areas.Stocks.Dtos;
 using StockMock.Application.Base;
@@ -12,20 +13,23 @@ using StockMock.Infrastructure.Database;
 
 namespace StockMock.Application.Areas.Stocks.Services
 {
-    public class AccountStockService : BaseService
+    public class AccountStockService(
+        ApplicationDbContext context, 
+        IMapper mapper, 
+        CancellationToken cancellationToken,
+        LocalCacheManager localCache, 
+        ILogger<AccountStockService> logger) 
+        : BaseService<AccountStockService>(context, mapper, cancellationToken, localCache, logger)
     {
-        public AccountStockService(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager localCache) : base(context, mapper, cancellationToken, localCache)
-        {
+        #region 增删改查
 
-        }
-
-        private async Task ValidateAsync(AccountStockDto dto, bool isValidateName = false)
+        private async Task ValidateAsync(AccountStockDto dto, bool isNotOnlyCode = false)
         {
             AccountStockDtoValidator validator = new AccountStockDtoValidator(true);
             var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new BusinessExcption(validationResult.Errors.ToMessage());
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
         }
 
         public async Task AddAsync(AccountStockDto dto)
@@ -34,7 +38,7 @@ namespace StockMock.Application.Areas.Stocks.Services
 
             var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, _cancellationToken);
             if (old != null)
-                throw new BusinessExcption("该股票已经添加，请勿重复添加");
+                throw new ApplicationExcption("该股票已经添加，请勿重复添加");
 
             await _context.AccountStocks.AddAsync(_mapper.Map<AccountStock>(dto), _cancellationToken);
 
@@ -51,10 +55,10 @@ namespace StockMock.Application.Areas.Stocks.Services
 
             var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, _cancellationToken);
             if (old == null)
-                throw new BusinessExcption("该股票尚未添加");
+                throw new ApplicationExcption("该股票尚未添加");
 
             if (old.IsEnabled == false)
-                throw new BusinessExcption("该股票为禁用状态无需禁用");
+                throw new ApplicationExcption("该股票为禁用状态无需禁用");
 
             old.IsEnabled = true;
             _context.AccountStocks.Update(old);
@@ -68,12 +72,16 @@ namespace StockMock.Application.Areas.Stocks.Services
 
             var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, _cancellationToken);
             if (old == null)
-                throw new BusinessExcption("该股票尚未添加");
+                throw new ApplicationExcption("该股票尚未添加");
 
             _context.AccountStocks.Remove(old);
 
             await _context.SaveChangesAsync(_cancellationToken);
         }
+
+        #endregion
+
+        #region 分页数据
 
         public async Task<PageList<AccountStock>> LoadAsync(AccountStockPageDto pageDto)
         {
@@ -81,12 +89,14 @@ namespace StockMock.Application.Areas.Stocks.Services
             var validationResult = await validator.ValidateAsync(pageDto, _cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new BusinessExcption(validationResult.Errors.ToMessage());
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
 
             var queryable = _context.AccountStocks.Where(pageDto.GetWhereLamda());
             var pageList = await pageDto.LoadAsync(queryable, _cancellationToken);
 
             return pageList;
         }
+
+        #endregion
     }
 }

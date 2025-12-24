@@ -1,8 +1,7 @@
 ﻿using AutoMapper;
 using FluentValidation;
-using LinqKit;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using StockMock.Application.Areas.Configs.Services;
 using StockMock.Application.Areas.Stocks.Dtos;
 using StockMock.Application.Base;
@@ -12,15 +11,21 @@ using StockMock.Domain.Common;
 using StockMock.Domain.Common.Caches;
 using StockMock.Domain.Entities.Stocks;
 using StockMock.Infrastructure.Database;
+using StockMock.Infrastructure.Extensions;
 using StockMock.Infrastructure.Utils;
 
 namespace StockMock.Application.Areas.AccountStocks.Services
 {
-    public class StockDateService : BaseBusService
+    public class StockDateService(
+        ApplicationDbContext context, 
+        IMapper mapper, 
+        CancellationToken cancellationToken, 
+        LocalCacheManager localCache, 
+        Logger<StockDateService> logger, 
+        DayService dayService) 
+        : BaseDayService<StockDateService>(context, mapper, cancellationToken, localCache, logger, dayService)
     {
-        public StockDateService(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager localCache, DayService dayService) : base(context, mapper, cancellationToken, localCache, dayService)
-        {
-        }
+        #region 增删改查
 
         private async Task ValidateAsync(StockDateDto dto, bool isRequiredId = true)
         {
@@ -28,7 +33,7 @@ namespace StockMock.Application.Areas.AccountStocks.Services
             var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new BusinessExcption(validationResult.Errors.ToMessage());
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
         }
 
         public async Task AddAsync(StockDateDto dto)
@@ -37,11 +42,11 @@ namespace StockMock.Application.Areas.AccountStocks.Services
 
             var old = await _context.StockDates.FirstOrDefaultAsync(e => e.StockCode == dto.StockCode && e.Date == dto.Date, _cancellationToken);
             if (old != null)
-                throw new BusinessExcption("该股票在该日期的行情数据已存在，请勿重复添加");
+                throw new ApplicationExcption("该股票在该日期的行情数据已存在，请勿重复添加");
 
             var isWorkDay = await _dayService.IsWorkDayAsync(dto.Date);
             if (!isWorkDay)
-                throw new BusinessExcption("非工作日，无法添加行情数据");
+                throw new ApplicationExcption("非工作日，无法添加行情数据");
 
             if (!dto.ClosingPrice.HasValue || !dto.PriceVariation.HasValue || !dto.PreClosingPrice.HasValue)
             {
@@ -50,14 +55,14 @@ namespace StockMock.Application.Areas.AccountStocks.Services
                     predyesterday = await _context.StockDates.OrderByDescending(e => e.Date).FirstOrDefaultAsync(e => e.StockCode == dto.StockCode && e.Date < dto.Date, _cancellationToken);
 
                 if (predyesterday == null)
-                    throw new BusinessExcption("该股票在该日期之前的行情数据不存在，无法计算缺失数据");
+                    throw new ApplicationExcption("该股票在该日期之前的行情数据不存在，无法计算缺失数据");
 
                 if (!dto.ClosingPrice.HasValue)
                 {
                     if (dto.PriceVariation.HasValue)
                         dto.ClosingPrice = predyesterday.ClosingPrice * (1 + dto.PriceVariation!.Value);
                     else
-                        throw new BusinessExcption("收盘价未录入或无法计算得出");
+                        throw new ApplicationExcption("收盘价未录入或无法计算得出");
                 }
 
                 if (!dto.PreClosingPrice.HasValue)
@@ -73,7 +78,7 @@ namespace StockMock.Application.Areas.AccountStocks.Services
                     if (dto.ClosingPrice.HasValue && dto.PreClosingPrice.HasValue)
                         dto.PriceVariation = (dto.ClosingPrice.Value - dto.PreClosingPrice.Value) / dto.PreClosingPrice.Value;
                     else
-                        throw new BusinessExcption("收盘价或昨日收盘价未录入，无法计算得出");
+                        throw new ApplicationExcption("收盘价或昨日收盘价未录入，无法计算得出");
                 }
 
                 await ValidateAsync(dto, false);
@@ -87,11 +92,11 @@ namespace StockMock.Application.Areas.AccountStocks.Services
         public async Task<StockDateDto> GetAsync(long Id)
         {
             if (Id <= 0)
-                throw new BusinessExcption("Id不合法");
+                throw new ApplicationExcption("Id不合法");
 
             var old = await _context.StockDates.FindAsync(Id, _cancellationToken);
             if (old == null)
-                throw new BusinessExcption("没有找到该行情数据");
+                throw new ApplicationExcption("没有找到该行情数据");
 
             return _mapper.Map<StockDateDto>(old);
         }
@@ -102,7 +107,7 @@ namespace StockMock.Application.Areas.AccountStocks.Services
 
             var old = await _context.StockDates.FindAsync(dto.Id, _cancellationToken);
             if (old == null)
-                throw new BusinessExcption("该股票在该日期的行情数据不存在，无法删除");
+                throw new ApplicationExcption("该股票在该日期的行情数据不存在，无法删除");
 
             old = _mapper.Map(dto, old);
             _context.StockDates.Update(old);
@@ -112,16 +117,20 @@ namespace StockMock.Application.Areas.AccountStocks.Services
         public async Task DeleteAsync(string idText)
         {
             if (string.IsNullOrWhiteSpace(idText))
-                throw new BusinessExcption("没有需要删除的行情数据");
+                throw new ApplicationExcption("没有需要删除的行情数据");
 
             var ids = idText.TrySplit<long>();
             var olds = await _context.StockDates.Where(e => ids.Contains(e.Id)).ToListAsync(_cancellationToken);
             if (!olds.Any())
-                throw new BusinessExcption("没有找到要删除的行情数据");
+                throw new ApplicationExcption("没有找到要删除的行情数据");
 
             _context.StockDates.RemoveRange(olds);
             await _context.SaveChangesAsync(_cancellationToken);
         }
+
+        #endregion
+
+        #region 分页查询
 
         public async Task<PageList<StockDate>> LoadAsync(StockDatePageDto pageDto)
         {
@@ -129,7 +138,7 @@ namespace StockMock.Application.Areas.AccountStocks.Services
             var validationResult = await validator.ValidateAsync(pageDto, _cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new BusinessExcption(validationResult.Errors.ToMessage());
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
 
             var queryable = _context.StockDates.Where(pageDto.GetWhereLamda());
             var pageList = await pageDto.LoadAsync(queryable, _cancellationToken);
@@ -137,24 +146,28 @@ namespace StockMock.Application.Areas.AccountStocks.Services
             return pageList;
         }
 
-        public async Task ImportAsync(IFormFile file)
+        #endregion
+
+        #region 导入数据
+
+        public async Task ImportAsync(Stream stream, string fileName)
         {
             IEnumerable<StockDateDto>? rows = default;
             try
             {
-                rows = await ExcelUtil.ReadExcelAsync<StockDateDto>(file, cancellationToken: _cancellationToken);
+                rows = await ExcelUtil.ReadExcelAsync<StockDateDto>(stream, fileName, cancellationToken: _cancellationToken);
                 if (rows == null || !rows.Any())
-                    throw new BusinessExcption("没有找到有效数据");
+                    throw new ApplicationExcption("没有找到有效数据");
             }
             catch (Exception ex)
             {
-                throw new BusinessExcption(ex.Message);
+                throw new ApplicationExcption(ex.Message);
             }
 
             if (rows.Count() > 2000)
-                throw new BusinessExcption("一次性导入数据不能超过2000条");
+                throw new ApplicationExcption("一次性导入数据不能超过2000条");
 
-            var lamda = PredicateBuilder.New<StockDate>(true);
+            var lamda = LinqKit.PredicateBuilder.New<StockDate>(true);
 
             rows.ForEach(row =>
             {
@@ -214,5 +227,8 @@ namespace StockMock.Application.Areas.AccountStocks.Services
 
             await _context.SaveChangesAsync(_cancellationToken);
         }
+
+        #endregion
+
     }
 }

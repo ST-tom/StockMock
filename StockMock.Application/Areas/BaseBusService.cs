@@ -1,18 +1,14 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using StockMock.Application.Areas.Configs.Services;
 using StockMock.Domain.Common.Caches;
 using StockMock.Infrastructure.Database;
 
 namespace StockMock.Application.Areas
 {
-    public class BaseBusService : BaseService
+    public class BaseDayService<T>(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager localCache, ILogger<T> logger, DayService dayService) : BaseService<T>(context, mapper, cancellationToken, localCache, logger)
+        where T : class
     {
-        protected DayService _dayService;
-
-        public BaseBusService(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager localCache, DayService dayService) : base(context, mapper, cancellationToken, localCache)
-        {
-            _dayService = dayService;
-        }
-
+        protected DayService _dayService = dayService;
     }
 }

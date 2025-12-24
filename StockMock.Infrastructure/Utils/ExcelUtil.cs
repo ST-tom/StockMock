@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using MiniExcelLibs;
+﻿using MiniExcelLibs;
 using MiniExcelLibs.Attributes;
 using MiniExcelLibs.OpenXml;
 using System.Reflection;
@@ -8,17 +7,16 @@ namespace StockMock.Infrastructure.Utils
 {
     public partial class ExcelUtil
     {
-        public async static Task<IEnumerable<T>> ReadExcelAsync <T>(IFormFile file, ExcelType excelType = ExcelType.XLSX, bool hasHeader = true, CancellationToken cancellationToken = default)
+        public async static Task<IEnumerable<T>> ReadExcelAsync <T>(Stream stream, string fileName, ExcelType excelType = ExcelType.XLSX, bool hasHeader = true, CancellationToken cancellationToken = default)
             where T : class, new()
         {
-            if (file == null || file.Length == 0)
+            if(stream == null || !stream.CanRead || (stream.CanSeek && stream.Length == 0))
                 throw new ArgumentException("请上传有效的Excel文件");
 
-            var fileExtension = Path.GetExtension(file.FileName).ToLower();
+            var fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
             if (fileExtension != ".xlsx" && fileExtension != ".xls")
                 throw new ArgumentException("仅支持.xlsx和.xls格式的Excel文件");
 
-            using var stream = file.OpenReadStream();
             return await stream.QueryAsync<T>(excelType: excelType, hasHeader: hasHeader, cancellationToken: cancellationToken);
         }
 

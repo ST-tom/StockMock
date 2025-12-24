@@ -1,25 +1,21 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using StockMock.Domain.Common.Caches;
 using StockMock.Infrastructure.Database;
 
 namespace StockMock.Application.Areas
 {
-    public class BaseService 
+    public class BaseService<T>(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager loaclCache, ILogger<T> logger)
+        where T : class
     {
-        protected ApplicationDbContext _context;
+        protected ApplicationDbContext _context = context;
 
-        protected IMapper _mapper;
+        protected IMapper _mapper = mapper;
 
-        protected CancellationToken _cancellationToken;
+        protected CancellationToken _cancellationToken = cancellationToken;
 
-        protected LocalCacheManager _loaclCache;
+        protected LocalCacheManager _loaclCache = loaclCache;
 
-        public BaseService(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager loaclCache)
-        {
-            _context = context;
-            _mapper = mapper;
-            _cancellationToken = cancellationToken;
-            _loaclCache = loaclCache;
-        }
+        protected ILogger<T> _logger = logger;
     }
 }

@@ -52,12 +52,12 @@ namespace StockMock.Domain.Entities.Mocks
         /// <summary>
         /// 变更数量
         /// </summary>
-        public decimal ChangeQuantity { get; set; }
+        public decimal? ChangeQuantity { get; set; }
 
         /// <summary>
         /// 昨日持仓金额
         /// </summary>
-        public decimal PrePositionAmount { get; set; }
+        public decimal? PrePositionAmount { get; set; }
 
         /// <summary>
         /// 持仓金额
@@ -68,6 +68,11 @@ namespace StockMock.Domain.Entities.Mocks
         /// 盈亏金额（昨日盘尾操作后根据今日涨幅计算）
         /// </summary>
         public decimal EarningsAmount { get; set; }
+
+        /// <summary>
+        /// 交易成本
+        /// </summary>
+        public decimal TransactionCost { get; set; }
 
         /// <summary>
         /// 股票涨幅
@@ -85,7 +90,7 @@ namespace StockMock.Domain.Entities.Mocks
         public PositionRateType PositionRateType { get; set; }
 
         /// <summary>
-        /// 预测结果
+        /// 预测涨幅
         /// </summary>
         public PredictionType Prediction { get; set; }
 
@@ -94,7 +99,10 @@ namespace StockMock.Domain.Entities.Mocks
         /// </summary>
         public int? PredictionDeviationValue { get; set; }
 
-        public int MockResult { get; set; }
+        /// <summary>
+        /// 预测评分
+        /// </summary>
+        public decimal? MockScore { get; set; }
 
         public Stock Stock { get; set; }
 

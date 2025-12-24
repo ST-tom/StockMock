@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using StockMock.Domain.Common;
-using StockMock.Infrastructure.Utils;
 
 namespace StockMock.Web.Filters
 {
@@ -16,8 +15,6 @@ namespace StockMock.Web.Filters
             {
                 string? controller = context.HttpContext.Request.RouteValues["controller"] as string;
                 string? action = context.HttpContext.Request.RouteValues["action"] as string;
-                //记录日志
-                Log4NetUtil.Error(this, $"控制器{controller}-{action}发生异常" + context.Exception.ToString());
 
                 var result = ApiResult.Err("系统异常，详情请查看日志");
 

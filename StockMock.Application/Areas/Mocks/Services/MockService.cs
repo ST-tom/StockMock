@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using StockMock.Application.Areas.Configs.Services;
 using StockMock.Application.Areas.Mocks.Dtos;
 using StockMock.Application.Base;
@@ -11,13 +12,22 @@ using StockMock.Infrastructure.Database;
 
 namespace StockMock.Application.Areas.Mocks.Services
 {
-    public class MockService : BaseBusService
+    public class MockService(
+        ApplicationDbContext context, 
+        IMapper mapper, CancellationToken cancellationToken, 
+        LocalCacheManager localCache,
+        ILogger<MockService> logger, 
+        DayService dayService, 
+        ApplicationConfig applicationConfig) 
+        : BaseDayService<MockService>(context, mapper, cancellationToken, localCache, logger, dayService)
     {
-        public const decimal baseAmount = 100000;
+        #region 保护字段
 
-        public MockService(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, LocalCacheManager localCache, DayService dayService) : base(context, mapper, cancellationToken, localCache, dayService)
-        {
-        }
+        protected ApplicationConfig _applicationConfig = applicationConfig;
+
+        #endregion
+
+        #region 增删改查
 
         private async Task ValidateAsync(MockDto dto, bool isRequiredId = false)
         {
@@ -25,7 +35,7 @@ namespace StockMock.Application.Areas.Mocks.Services
             var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new BusinessExcption(validationResult.Errors.ToMessage());
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
         }
 
         public async Task AddAsync(MockDto dto)
@@ -34,14 +44,14 @@ namespace StockMock.Application.Areas.Mocks.Services
 
             var stock = await _context.Stocks.FirstOrDefaultAsync(e => e.Code == dto.StockCode, _cancellationToken);
             if (stock == null)
-                throw new BusinessExcption("股票代码不存在");
+                throw new ApplicationExcption("股票代码不存在");
 
             if (!await _dayService.IsWorkDayAsync(dto.MockDate))
-                throw new BusinessExcption("非交易日，无法作为模拟起始日期");
+                throw new ApplicationExcption("非交易日，无法作为模拟起始日期");
 
             var stockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.StockId == stock.Id && e.Date == dto.MockDate, _cancellationToken);
             if (stockDate == null)
-                throw new BusinessExcption("未找到对应股票日期数据，无法作为模拟起始日期");
+                throw new ApplicationExcption("未找到对应股票日期数据，无法作为模拟起始日期");
 
             var mock = CreatNewMock();
 
@@ -69,12 +79,12 @@ namespace StockMock.Application.Areas.Mocks.Services
 
             (int shares, decimal amount) CalMaxPositionQuantityAndAmount()
             {
-                int shares = (int)(baseAmount / stockDate.ClosingPrice / 100);
+                int shares = (int)(_applicationConfig.mock_position_max_amount / stockDate.ClosingPrice / 100);
 
                 var amountA = shares * 100 * stockDate.ClosingPrice;
                 var amountB = (shares + 1) * 100 * stockDate.ClosingPrice;
 
-                return Math.Abs(amountA - baseAmount) > Math.Abs(amountB - baseAmount) ? ((shares + 1 * 100), amountB) : (shares, amountA);
+                return Math.Abs(amountA - _applicationConfig.mock_position_max_amount) > Math.Abs(amountB - _applicationConfig.mock_position_max_amount) ? ((shares + 1 * 100), amountB) : (shares, amountA);
             }
         }
 
@@ -83,10 +93,10 @@ namespace StockMock.Application.Areas.Mocks.Services
             await ValidateAsync(dto, true);
             var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken);
             if (old == null)
-                throw new BusinessExcption("该模拟数据不存在");
+                throw new ApplicationExcption("该模拟数据不存在");
 
             if (old.Status == MockStatus.canceled)
-                throw new BusinessExcption("该模拟数据已取消，无法重复取消");
+                throw new ApplicationExcption("该模拟数据已取消，无法重复取消");
 
             dto.Status = MockStatus.canceled;
             old.Status = dto.Status;
@@ -99,10 +109,10 @@ namespace StockMock.Application.Areas.Mocks.Services
             await ValidateAsync(dto, true);
             var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken);
             if (old == null)
-                throw new BusinessExcption("该模拟数据不存在");
+                throw new ApplicationExcption("该模拟数据不存在");
 
             if(old.Status == MockStatus.canceled)
-                throw new BusinessExcption("该模拟数据已取消，无法置为完成");
+                throw new ApplicationExcption("该模拟数据已取消，无法置为完成");
 
             dto.Status = MockStatus.finished;
             if (old.Status != dto.Status)
@@ -118,10 +128,10 @@ namespace StockMock.Application.Areas.Mocks.Services
             await ValidateAsync(dto, true);
             var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken);
             if (old == null)
-                throw new BusinessExcption("该模拟数据不存在");
+                throw new ApplicationExcption("该模拟数据不存在");
 
             if (old.Status != MockStatus.finished)
-                throw new BusinessExcption("该模拟数据未完成，无法重新开始");
+                throw new ApplicationExcption("该模拟数据未完成，无法重新开始");
 
             dto.Status = MockStatus.mocking;
             old.Status = dto.Status;
@@ -129,18 +139,24 @@ namespace StockMock.Application.Areas.Mocks.Services
             await _context.SaveChangesAsync(_cancellationToken);
         }
 
+        #endregion
+
+        #region 分页查询
+
         public async Task<PageList<Mock>> LoadAsync(MockPageDto pageDto)
         {
             var validator = new MockPageDtoValidator();
             var validationResult = await validator.ValidateAsync(pageDto, _cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new BusinessExcption(validationResult.Errors.ToMessage());
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
 
             var queryable = _context.Mocks.Where(pageDto.GetWhereLamda());
             var pageList = await pageDto.LoadAsync(queryable, _cancellationToken);
 
             return pageList;
         }
+
+        #endregion
     }
 }

@@ -22,6 +22,9 @@ namespace StockMock.Domain.Entities.Stocks
         /// </summary>
         public bool IsEnabled { get; set; }
 
+        /// <summary>
+        /// 板块类型
+        /// </summary>
         public BoardType BoardType { get; set; }
 
         public List<StockDate> StockDateList { get; } = new List<StockDate>();
@@ -31,6 +34,11 @@ namespace StockMock.Domain.Entities.Stocks
 
     public enum BoardType
     {
+        /// <summary>
+        /// 未知
+        /// </summary>
+        [Description("未知")]
+        NONE,
         /// <summary>
         /// 主板
         /// </summary>

@@ -4,6 +4,7 @@ using StockMock.Domain.Common;
 using StockMock.Domain.Entities.Accounts;
 using StockMock.Domain.Users;
 using StockMock.Infrastructure.Common;
+using StockMock.Infrastructure.Extensions;
 using StockMock.Web.UserManager;
 using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
@@ -59,9 +60,9 @@ namespace Microsoft.Extensions.DependencyInjection
             //基于策略的授权
             builder.Services.AddAuthorization(options =>
             {
-                foreach (var role in AccountRole.GetAll())
+                foreach (var role in typeof(AccountRole).ToDictionary())
                 {
-                    options.AddPolicy(role.Key, policy => policy.RequireRole(role.Key));
+                    options.AddPolicy(role.Value, policy => policy.RequireRole(role.Value));
                 }
             });
 
