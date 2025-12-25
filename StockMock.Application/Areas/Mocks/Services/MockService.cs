@@ -9,6 +9,7 @@ using StockMock.Domain.Common;
 using StockMock.Domain.Common.Caches;
 using StockMock.Domain.Entities.Mocks;
 using StockMock.Infrastructure.Database;
+using System.Text.RegularExpressions;
 
 namespace StockMock.Application.Areas.Mocks.Services
 {
@@ -98,8 +99,7 @@ namespace StockMock.Application.Areas.Mocks.Services
             if (old.Status == MockStatus.canceled)
                 throw new ApplicationExcption("该模拟数据已取消，无法重复取消");
 
-            dto.Status = MockStatus.canceled;
-            old.Status = dto.Status;
+            old.Status = MockStatus.canceled;
             _context.Mocks.Update(old);
             await _context.SaveChangesAsync(_cancellationToken);
         }
@@ -114,10 +114,11 @@ namespace StockMock.Application.Areas.Mocks.Services
             if(old.Status == MockStatus.canceled)
                 throw new ApplicationExcption("该模拟数据已取消，无法置为完成");
 
-            dto.Status = MockStatus.finished;
-            if (old.Status != dto.Status)
+            if (old.Status != MockStatus.finished)
             {
-                old.Status = dto.Status;
+                old.EarningsRate = Math.Round(old.EarningsAmount / old.BaseAmount * 100, 2);
+
+                old.Status = MockStatus.finished;
                 _context.Mocks.Update(old);
                 await _context.SaveChangesAsync(_cancellationToken);
             }
@@ -133,8 +134,8 @@ namespace StockMock.Application.Areas.Mocks.Services
             if (old.Status != MockStatus.finished)
                 throw new ApplicationExcption("该模拟数据未完成，无法重新开始");
 
-            dto.Status = MockStatus.mocking;
-            old.Status = dto.Status;
+            old.Status = MockStatus.mocking;
+            old.EarningsRate = 0;
             _context.Mocks.Update(old);
             await _context.SaveChangesAsync(_cancellationToken);
         }
@@ -143,15 +144,15 @@ namespace StockMock.Application.Areas.Mocks.Services
 
         #region 分页查询
 
-        public async Task<PageList<Mock>> LoadAsync(MockPageDto pageDto)
+        public async Task<PageList<MockDate>> LoadAsync(MockDatePageDto pageDto)
         {
-            var validator = new MockPageDtoValidator();
+            var validator = new MockDatePageDtoValidator();
             var validationResult = await validator.ValidateAsync(pageDto, _cancellationToken);
 
             if (!validationResult.IsValid)
                 throw new ApplicationExcption(validationResult.Errors.ToMessage());
 
-            var queryable = _context.Mocks.Where(pageDto.GetWhereLamda());
+            var queryable = _context.MockDates.Where(pageDto.GetWhereLamda());
             var pageList = await pageDto.LoadAsync(queryable, _cancellationToken);
 
             return pageList;

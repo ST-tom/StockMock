@@ -20,11 +20,6 @@ namespace StockMock.Application.Areas.Mocks.Dtos
         /// 模拟起始日期
         /// </summary>
         public DateOnly MockDate { get; set; }
-
-        /// <summary>
-        /// 模拟状态
-        /// </summary>
-        public MockStatus Status { get; set; }
     }
 
     public class MockDtoValidator : AbstractValidator<MockDto>
@@ -41,12 +36,12 @@ namespace StockMock.Application.Areas.Mocks.Dtos
             {
                 RuleFor(v => v.StockCode)
                      .MustStockCode();
-            }
-
-            RuleFor(v => v.MockDate)
+                
+                RuleFor(v => v.MockDate)
                 .NotEmpty()
                 .WithMessage("模拟起始日期不能为空")
                 .MustDateRange();
+            }
         }
     }
 }

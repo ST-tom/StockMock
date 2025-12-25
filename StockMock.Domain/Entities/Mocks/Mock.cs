@@ -78,6 +78,38 @@ namespace StockMock.Domain.Entities.Mocks
         /// </summary>
         public decimal EarningsRate { get; set; }
 
+        /// <summary>
+        /// 近30天预测评分数据字符串,隔开的评分字符串
+        /// </summary>
+        public string ScoreDataText { get; set; }
+
+        /// <summary>
+        /// 近10天平均预测评分
+        /// </summary>
+        public decimal? ScoreDataFor10 => GetAverageScore(10);
+
+        /// <summary>
+        /// 近20天平均预测评分
+        /// </summary>
+        public decimal? ScoreDataFoo20 => GetAverageScore(20);
+
+        /// <summary>
+        /// 近30天平均预测评分
+        /// </summary>
+        public decimal? ScoreDataFoo30 => GetAverageScore(30);
+
+        private decimal? GetAverageScore(int days)
+        {
+            if (string.IsNullOrWhiteSpace(ScoreDataText))
+                return null;
+
+            var strScores = ScoreDataText.Split(",").ToList();
+            if (strScores.Count < days)
+                return null;
+
+            return strScores.Select(e => Convert.ToDecimal(e)).TakeLast(days).Average();
+        }
+
         public List<MockDate> MockDates { get; } = new List<MockDate>();
 
         public Stock Stock { get; set; }

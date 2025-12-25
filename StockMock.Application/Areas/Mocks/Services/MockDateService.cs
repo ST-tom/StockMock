@@ -58,9 +58,16 @@ namespace StockMock.Application.Areas.Mocks.Services
             var preDay = await _dayService.GetPreWorkDayAsync(dto.Date);
             var preStockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.StockId == stock.Id && e.Date == preDay);
             var preMockDate = await _context.MockDates.FirstOrDefaultAsync(e => e.MockId == mock.Id && e.Date == preDay);
-            
+
             var mockDate = CreateNewMockDate();
             await _context.MockDates.AddAsync(mockDate);
+
+            if (mockDate.MockScore.HasValue)
+            {
+                mock.ScoreDataText = RebuildRateData(mock.ScoreDataText, mockDate.MockScore.Value);
+                _context.Mocks.Update(mock);
+            }
+
             await _context.SaveChangesAsync(_cancellationToken);
 
             MockDate CreateNewMockDate()
@@ -93,6 +100,20 @@ namespace StockMock.Application.Areas.Mocks.Services
                 }
                 return entity;
             }
+        }
+
+        private string RebuildRateData(string strRate, decimal todayRate)
+        {
+            if(string.IsNullOrWhiteSpace(strRate))
+                return todayRate.ToString();
+
+            var rates = strRate.TrySplit<string>(",").ToList();
+            if(rates.Count() >= 30)
+                rates.RemoveRange(0, rates.Count - 29);
+
+            rates.Add(todayRate.ToString());
+
+            return rates.ToJoinString(",");
         }
 
         /// <summary>
@@ -139,6 +160,12 @@ namespace StockMock.Application.Areas.Mocks.Services
             }
             return PositionRateType.空仓;
         }
+
+        #endregion
+
+        #region 加载数据
+
+
 
         #endregion
     }

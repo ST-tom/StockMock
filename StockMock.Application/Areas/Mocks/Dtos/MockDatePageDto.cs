@@ -7,8 +7,8 @@ using System.Linq.Expressions;
 
 namespace StockMock.Application.Areas.Mocks.Dtos
 {
-    public class MockPageDto : PageDto
-    {       
+    public class MockDatePageDto : PageDto
+    {
         /// <summary>
         /// 编号
         /// </summary>
@@ -20,49 +20,38 @@ namespace StockMock.Application.Areas.Mocks.Dtos
         public string StockCode { get; set; }
 
         /// <summary>
-        /// 股票名称
-        /// </summary>
-        public string StockName { get; set; }
-
-        /// <summary>
-        /// 模拟起始日期
+        /// 起始日期
         /// </summary>
         public DateOnly? StartDate { get; set; }
 
         /// <summary>
-        /// 模拟截止日期
+        /// 截止日期
         /// </summary>
         public DateOnly? EndDate { get; set; }
 
-        public override Expression<Func<Mock, bool>> GetWhereLamda()
+        public override Expression<Func<MockDate, bool>> GetWhereLamda()
         {
-            var lamda = PredicateBuilder.New<Mock>(true);
+            var lamda = PredicateBuilder.New<MockDate>(true);
 
             if (StockCode.IsNotNullOrEmpty())
-                lamda.And(e => e.StockCode.Contains(StockCode));
-
-            if (StockName.IsNotNullOrEmpty())
-                lamda.And(e => e.StockName.Contains(StockName));
+                lamda.And(e => e.Mock.StockCode.Equals(StockCode));
 
             if (StartDate.HasValue)
-                lamda.And(e => e.MockDate >= StartDate);
+                lamda.And(e => e.Date >= StartDate);
 
             if (EndDate.HasValue)
-                lamda.And(e => e.MockDate <= EndDate);
+                lamda.And(e => e.Date <= EndDate);
 
             return lamda;
         }
     }
 
-    public class MockPageDtoValidator : PageDtoValidator<MockPageDto>
+    public class MockDatePageDtoValidator : PageDtoValidator<MockDatePageDto>
     {
-        public MockPageDtoValidator() : base()
+        public MockDatePageDtoValidator() : base()
         {
             RuleFor(e => e.StockCode)
-                .MustStockCodeLength();
-
-            RuleFor(e => e.StockName)
-                .MustStockNameLength();
+                .MustStockCode();
 
             RuleFor(e => e.StartDate)
                 .MustDateRange();
