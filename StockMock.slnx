@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Apps/">
+    <Project Path="StockMock.Api/StockMock.Api.csproj" />
+  </Folder>
+  <Folder Name="/Business/">
+    <Project Path="StockMock.Core/StockMock.Core.csproj" />
+    <Project Path="StockMock.Repository/StockMock.Repository.csproj" />
+    <Project Path="StockMock.Service/StockMock.Service.csproj" />
+  </Folder>
+  <Folder Name="/Common/">
+    <Project Path="TS.Shared/TS.Shared.csproj" />
+  </Folder>
+</Solution>

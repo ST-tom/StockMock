@@ -1,0 +1,171 @@
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using StockMock.Core.Mocks;
+using StockMock.Repository;
+using StockMock.Service.Areas.Configs.Services;
+using StockMock.Service.Areas.Mocks.Dtos;
+using StockMock.Service.FluentValidation;
+using TS.Shared.Excption;
+using TS.Shared.Extension;
+using StockMock.Core.Stocks;
+
+namespace StockMock.Service.Areas.Mocks.Services
+{
+    public class MockDateService(
+        ApplicationDbContext context, 
+        IMapper mapper, 
+        CancellationToken cancellationToken, 
+        Logger<MockDateService> logger, 
+        DayService dayService) 
+        : BaseDayService<MockDateService>(context, mapper, cancellationToken, logger, dayService)
+    {
+
+        #region 新增股票模拟日期数据
+
+        private async Task ValidateAsync(MockDateDto dto)
+        {
+            MockDateDtoValidator validator = new MockDateDtoValidator();
+            var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
+
+            if (!validationResult.IsValid)
+                throw new ApplicationExcption(validationResult.Errors.ToMessage());
+        }
+
+        public async Task AddMockDate(MockDateDto dto)
+        {
+            await ValidateAsync(dto);
+
+            var mock = await _context.Mocks.FirstOrDefaultAsync(x => x.Id == dto.MockId);
+            if (mock == null)
+                throw new ApplicationExcption("未找到对应的模拟股票操作数据");
+
+            if (mock.Status != MockStatus.created || mock.Status != MockStatus.mocking)
+                throw new ApplicationExcption("模拟股票操作数据状态不允许继续操作");
+
+            if(!await _dayService.IsWorkDayAsync(dto.Date))
+                throw new ApplicationExcption("非工作日");
+
+            var stock = await _context.Stocks.FirstOrDefaultAsync(e => e.Id == mock.StockId);
+            if(stock == null)
+                throw new ApplicationExcption("未找到对应的股票");
+
+            var stockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.Date == dto.Date && e.StockId == stock.Id);
+            if (stockDate == null)
+                throw new ApplicationExcption("未找到对应的股票日期");
+
+            var preDay = await _dayService.GetPreWorkDayAsync(dto.Date);
+            var preStockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.StockId == stock.Id && e.Date == preDay);
+            var preMockDate = await _context.MockDates.FirstOrDefaultAsync(e => e.MockId == mock.Id && e.Date == preDay);
+
+            var mockDate = CreateNewMockDate();
+            await _context.MockDates.AddAsync(mockDate);
+
+            if (mockDate.MockScore.HasValue)
+            {
+                mock.ScoreDataText = RebuildRateData(mock.ScoreDataText, mockDate.MockScore.Value);
+                _context.Mocks.Update(mock);
+            }
+
+            await _context.SaveChangesAsync(_cancellationToken);
+
+            MockDate CreateNewMockDate()
+            {
+                decimal positionRate = Math.Round(dto.PositionQuantity / mock.MaxPositionQuantity * 100m, 2);
+                MockDate entity = new MockDate()
+                {
+                    StockId = stock.Id,
+                    StockName = stock.Name,
+                    StockDateId = stockDate.Id,
+                    MockId = mock.Id,
+                    Date = dto.Date,
+                    OpeningPrice = stockDate.OpeningPrice,
+                    ClosingPrice = stockDate.ClosingPrice,
+                    PreClosingPrice = preStockDate?.ClosingPrice,
+                    PositionQuantity = dto.PositionQuantity,
+                    PositionAmount = dto.PositionQuantity * stockDate.ClosingPrice,
+                    Gain = preStockDate != null ?  Math.Round((stockDate.ClosingPrice - preStockDate.ClosingPrice) / preStockDate.ClosingPrice * 100, 2) : stockDate.Gain,
+                    PositionRate = positionRate,
+                    PositionRateType = CalPositionRateType(positionRate),
+                    Prediction = dto.Prediction,
+                };
+
+                //存在昨日股票数据
+                if (preStockDate != null)
+                {
+                    var actualPrePredictionType = CalPredictionType(entity.Gain, stock.BoardType.GetMaxGain());
+                    entity.PredictionDeviationValue = Math.Abs(preMockDate!.Prediction - actualPrePredictionType);
+                    entity.MockScore = entity.PositionRate * 4 * actualPrePredictionType.ToInt() + (entity.Gain > 0 ? entity.PredictionDeviationValue.Value : -entity.PredictionDeviationValue.Value);
+                }
+                return entity;
+            }
+        }
+
+        private string RebuildRateData(string strRate, decimal todayRate)
+        {
+            if(string.IsNullOrWhiteSpace(strRate))
+                return todayRate.ToString();
+
+            var rates = strRate.TrySplit<string>(",").ToList();
+            if(rates.Count() >= 30)
+                rates.RemoveRange(0, rates.Count - 29);
+
+            rates.Add(todayRate.ToString());
+
+            return rates.ToJoinString(",");
+        }
+
+        /// <summary>
+        /// 计算涨幅        
+        /// </summary>
+        /// <param name="gain">涨幅</param>
+        /// <param name="maxGain">最大涨幅</param>
+        /// <returns></returns>
+        private PredictionType CalPredictionType(decimal gain, decimal maxGain = 10)
+        {
+            decimal[] coefficients = { 1, 0.7m, 0.3m, 0.1m, -0.1m, -0.3m, -0.7m, -1 };
+            var dicPredictionType = typeof(PredictionType).ToDictionary().OrderDescending().ToDictionary();
+
+            for (int i = 0; i < coefficients.Length; i++)
+            {
+                var coefficient = coefficients[i];
+                if (coefficient > 0 ? gain >= maxGain * coefficient : gain > maxGain * coefficient)
+                {
+                    if (Enum.TryParse<PredictionType>(dicPredictionType[i].ToString(), out var predictionType))
+                        return predictionType;
+                }
+            }
+            return PredictionType.跌停;
+        }
+
+        /// <summary>
+        /// 计算仓位
+        /// </summary>
+        /// <param name="positionRate"></param>
+        /// <returns></returns>
+        private PositionRateType CalPositionRateType(decimal positionRate)
+        {
+            decimal[] coefficients = { 0, 0.33m, 0.67m ,1};
+            var dicPositionRateType = typeof(PositionRateType).ToDictionary().OrderDescending().ToDictionary();
+
+            for (int i = 0; i < coefficients.Length; i++)
+            {
+                var coefficient = coefficients[i];
+                if (positionRate <= coefficient)
+                {
+                    if (Enum.TryParse<PositionRateType>(dicPositionRateType[i].ToString(), out var positionRateType))
+                        return positionRateType;
+                }
+            }
+            return PositionRateType.空仓;
+        }
+
+        #endregion
+
+        #region 加载数据
+
+
+
+        #endregion
+    }
+}
