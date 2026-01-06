@@ -106,7 +106,7 @@ namespace StockMock.Service.Areas.Mocks.Services
             if(string.IsNullOrWhiteSpace(strRate))
                 return todayRate.ToString();
 
-            var rates = strRate.TrySplit<string>(",").ToList();
+            var rates = strRate.TrySplit<string>(",")!.ToList();
             if(rates.Count() >= 30)
                 rates.RemoveRange(0, rates.Count - 29);
 

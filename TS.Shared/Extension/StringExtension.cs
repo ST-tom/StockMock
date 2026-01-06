@@ -38,12 +38,12 @@ namespace TS.Shared.Extension
             return string.Join(joinStr, strings);
         }
 
-        public static IEnumerable<T> TrySplit<T>(this string s, string separator = ",", IEnumerable<T>? defaultValue = default)
+        public static T[]? TrySplit<T>(this string s, string separator = ",", T[]? defaultValue = default, StringSplitOptions options = StringSplitOptions.RemoveEmptyEntries)
         {
             if (string.IsNullOrEmpty(s))
-                return new List<T>();
+                return default;
 
-            return s.Split([separator], StringSplitOptions.RemoveEmptyEntries).Select(x => (T)Convert.ChangeType(x, typeof(T)));
+            return s.Split([separator], options).Select(x => (T)Convert.ChangeType(x, typeof(T))).ToArray();
         }
 
         #endregion

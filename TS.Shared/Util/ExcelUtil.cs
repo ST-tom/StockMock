@@ -32,7 +32,7 @@ namespace TS.Shared.Util
                 throw new ArgumentException("数据量超过100w，请分批写入");
 
             var colmunList = new List<DynamicExcelColumn>();
-            if (headers != null && headers.Any())
+            if (headers != null && headers.Count != 0)
             {
                 var type = typeof(T);
                 Array.ForEach(type.GetProperties(BindingFlags.Public | BindingFlags.Instance), p => {

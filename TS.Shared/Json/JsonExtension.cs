@@ -11,7 +11,7 @@ namespace TS.Shared.Json
         /// </summary>
         /// <param name="obj">待序列化的对象</param>
         /// <returns>JSON字符串</returns>
-        public static string? ToJson(this object? obj, JsonSerializerOptions? options = default) => 
+        public static string? ToJsonString(this object? obj, JsonSerializerOptions? options = default) => 
             obj == null ? null : JsonSerializer.Serialize(obj, options ?? JsonGlobalConfig.DefaultOptions);
 
         /// <summary>
@@ -21,7 +21,7 @@ namespace TS.Shared.Json
         /// <param name="json">JSON字符串</param>
         /// <param name="options">自定义反序列化配置</param>
         /// <returns>反序列化后的对象</returns>
-        public static T? ToObject<T>(this string? json, JsonSerializerOptions? options = default)
+        public static T? ToJsonObject<T>(this string? json, JsonSerializerOptions? options = default)
         {
             if (options == null) 
                 throw new ArgumentNullException(nameof(options));
@@ -35,23 +35,6 @@ namespace TS.Shared.Json
             }
 
             return JsonSerializer.Deserialize<T>(json, options ?? JsonGlobalConfig.DefaultOptions);
-        }
-
-        /// <summary>
-        /// JSON字符串转指定类型对象
-        /// </summary>
-        /// <param name="json">JSON字符串</param>
-        /// <param name="type">目标类型</param>
-        /// <returns>反序列化后的对象</returns>
-        public static object? ToObject(this string? json, Type type, JsonSerializerOptions? options = default)
-        {
-            if (type == null) 
-                throw new ArgumentNullException(nameof(type));
-
-            if (string.IsNullOrWhiteSpace(json)) 
-                return null;
-
-            return JsonSerializer.Deserialize(json, type, options ?? JsonGlobalConfig.DefaultOptions);
         }
 
         public static void AddDefaultJsonOptions(this JsonSerializerOptions options)
