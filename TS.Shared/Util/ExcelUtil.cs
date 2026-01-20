@@ -23,7 +23,7 @@ namespace TS.Shared.Util
         public static OpenXmlConfiguration InitConfiguration<T>(IEnumerable<T> data, Dictionary<string,string>? headers = null)
             where T : class, new()
         {
-            OpenXmlConfiguration configuration = new OpenXmlConfiguration()
+            OpenXmlConfiguration configuration = new()
             {
                 WriteEmptyStringAsNull = true
             };

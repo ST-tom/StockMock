@@ -7,17 +7,13 @@ namespace TS.Shared.Query
     {
         public static IQueryable<T> OrderyByField<T>(this IQueryable<T> source, string field, bool isDesc = false)
         {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
 
             if (string.IsNullOrWhiteSpace(field))
                 return source;
 
             Type type = typeof(T);
-            PropertyInfo? property = type.GetProperty(field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-
-            if (property == null)
-                throw new ArgumentException($"实体 {type.Name} 中不存在字段 {field}");
+            PropertyInfo? property = type.GetProperty(field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase) ?? throw new ArgumentException($"实体 {type.Name} 中不存在字段 {field}");
 
             // 构建表达式树：x => x.Property
             ParameterExpression parameter = Expression.Parameter(type, "x");

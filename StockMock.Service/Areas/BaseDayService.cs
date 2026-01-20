@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
-using StockMock.Repository;
+using StockMock.Data;
 using StockMock.Service.Areas.Configs.Services;
 
 namespace StockMock.Service.Areas

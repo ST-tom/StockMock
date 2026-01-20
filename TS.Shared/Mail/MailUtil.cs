@@ -5,7 +5,7 @@ namespace TS.Shared.Mail
 {
     public class MailUtil()
     {
-        public void Send(MailDto mailInfo)
+        public static void Send(MailDto mailInfo)
         {
             var errors = mailInfo.ValidateErrors();
             if(errors.Count > 0)
@@ -17,7 +17,7 @@ namespace TS.Shared.Mail
             smtpClient.Send(mailMessage);
         }
 
-        public async Task SendAsync(MailDto mailInfo, CancellationToken cancellationToken = default)
+        public static async Task SendAsync(MailDto mailInfo, CancellationToken cancellationToken = default)
         {
             var errors = mailInfo.ValidateErrors();
             if (errors.Count > 0)

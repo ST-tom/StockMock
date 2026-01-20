@@ -20,8 +20,8 @@ namespace TS.Shared.Jwt
 
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Name, user.Name ?? string.Empty),
+                new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new(JwtRegisteredClaimNames.Name, user.Name ?? string.Empty),
             };
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 

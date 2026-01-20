@@ -27,20 +27,18 @@ namespace TS.Shared.Extension
 
         public static Dictionary<int, string> ToDictionary(this Type t)
         {
-            Dictionary<int, string> dic = new Dictionary<int, string>();
+            Dictionary<int, string> dic = [];
             Type enumType = t.GetType();
             var fieldstrs = Enum.GetNames(enumType);
             foreach (var fieldstr in fieldstrs)
             {
                 var field = enumType.GetField(fieldstr);
-                string description = string.Empty;
+                string description;
 
                 if (field == null)
                     continue;
 
-                DescriptionAttribute? des = Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) as DescriptionAttribute;
-
-                if (des != null)
+                if (Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) is DescriptionAttribute des)
                     description = des.Description;   //属性描述
                 else
                     description = fieldstr;  //描述不存在取字段名称

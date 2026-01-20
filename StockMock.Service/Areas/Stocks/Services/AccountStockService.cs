@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StockMock.Core.Stocks;
-using StockMock.Repository;
+using StockMock.Data;
 using StockMock.Service.Areas.Stocks.Dtos;
 using StockMock.Service.FluentValidation;
 using TS.Shared.Excption;
@@ -21,7 +21,7 @@ namespace StockMock.Service.Areas.Stocks.Services
 
         private async Task ValidateAsync(AccountStockDto dto, bool isNotOnlyCode = false)
         {
-            AccountStockDtoValidator validator = new AccountStockDtoValidator(true);
+            AccountStockDtoValidator validator = new(isNotOnlyCode);
             var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
 
             if (!validationResult.IsValid)
@@ -49,11 +49,8 @@ namespace StockMock.Service.Areas.Stocks.Services
         {
             await ValidateAsync(dto);
 
-            var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, _cancellationToken);
-            if (old == null)
-                throw new ApplicationExcption("该股票尚未添加");
-
-            if (old.IsEnabled == false)
+            var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, _cancellationToken) ?? throw new ApplicationExcption("该股票尚未添加");
+            if (!old.IsEnabled)
                 throw new ApplicationExcption("该股票为禁用状态无需禁用");
 
             old.IsEnabled = true;
@@ -66,10 +63,7 @@ namespace StockMock.Service.Areas.Stocks.Services
         {
             await ValidateAsync(dto);
 
-            var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, _cancellationToken);
-            if (old == null)
-                throw new ApplicationExcption("该股票尚未添加");
-
+            var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, _cancellationToken) ?? throw new ApplicationExcption("该股票尚未添加");
             _context.AccountStocks.Remove(old);
 
             await _context.SaveChangesAsync(_cancellationToken);

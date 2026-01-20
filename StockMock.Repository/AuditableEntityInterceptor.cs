@@ -4,17 +4,11 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using StockMock.Core;
 using TS.Shared.User;
 
-namespace StockMock.Repository
+namespace StockMock.Data
 {
-    public class AuditableEntityInterceptor : SaveChangesInterceptor
+    public class AuditableEntityInterceptor(IUser user) : SaveChangesInterceptor
     {
-        private readonly IUser _user;
-
-        public AuditableEntityInterceptor(
-            IUser user)
-        {
-            _user = user;
-        }
+        private readonly IUser _user = user;
 
         public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
         {

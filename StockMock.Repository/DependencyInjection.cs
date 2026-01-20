@@ -4,11 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 
-namespace StockMock.Repository
+namespace StockMock.Data
 {
     public static class DependencyInjection
     {
-        public static void AddRepositoryDependency(this IHostApplicationBuilder builder)
+        public static void AddDataDependency(this IHostApplicationBuilder builder)
         {
             var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContext");
 

@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using System.Text.Json.Serialization;
 using TS.Shared.Extension;
 
 namespace TS.Shared.Json
@@ -23,18 +22,33 @@ namespace TS.Shared.Json
         /// <returns>反序列化后的对象</returns>
         public static T? ToJsonObject<T>(this string? json, JsonSerializerOptions? options = default)
         {
-            if (options == null) 
-                throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
 
             if (string.IsNullOrWhiteSpace(json))
             {
                 if (typeof(T).IsValueType && Nullable.GetUnderlyingType(typeof(T)) == null)
-                    throw new ArgumentNullException(nameof(json), "JSON字符串不能为空（目标类型为非可空值类型）");
+                    throw new ArgumentException("JSON字符串不能为空（目标类型为非可空值类型）");
 
                 return default;
             }
 
             return JsonSerializer.Deserialize<T>(json, options ?? JsonGlobalConfig.DefaultOptions);
+        }
+
+        /// <summary>
+        /// JSON字符串转指定类型对象
+        /// </summary>
+        /// <param name="json">JSON字符串</param>
+        /// <param name="type">目标类型</param>
+        /// <returns>反序列化后的对象</returns>
+        public static object? ToJsonObject(this string? json, Type type, JsonSerializerOptions? options = default)
+        {
+            ArgumentNullException.ThrowIfNull(type);
+
+            if (string.IsNullOrWhiteSpace(json)) 
+                return null;
+
+            return JsonSerializer.Deserialize(json, type, options ?? JsonGlobalConfig.DefaultOptions);
         }
 
         public static void AddDefaultJsonOptions(this JsonSerializerOptions options)

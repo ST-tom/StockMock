@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace TS.Shared.Extension
 {
@@ -9,9 +10,15 @@ namespace TS.Shared.Extension
         public static bool IsNullOrEmpty(this string? s)
         {
             if (s != null)
-            {
                 return s.Length == 0;
-            }
+
+            return true;
+        }
+
+        public static bool IsNullOrWhiteSpace(this string? s)
+        {
+            if (s != null)
+                return string.IsNullOrWhiteSpace(s);
 
             return true;
         }
@@ -19,11 +26,17 @@ namespace TS.Shared.Extension
         public static bool IsNotNullOrEmpty(this string? s)
         {
             if (s != null)
-            {
                 return !(s.Length == 0);
-            }
 
             return false;
+        }
+
+        public static bool IsNotNullOrWhiteSpace(this string? s)
+        {
+            if (s != null)
+                return !string.IsNullOrWhiteSpace(s);
+
+            return true;
         }
 
         #endregion
@@ -41,17 +54,36 @@ namespace TS.Shared.Extension
         public static T[]? TrySplit<T>(this string s, string separator = ",", T[]? defaultValue = default, StringSplitOptions options = StringSplitOptions.RemoveEmptyEntries)
         {
             if (string.IsNullOrEmpty(s))
-                return default;
+                return defaultValue;
 
             return s.Split([separator], options).Select(x => (T)Convert.ChangeType(x, typeof(T))).ToArray();
+        }
+
+        /// <summary>
+        /// 填充字符串，通过参数名称替换，不是顺序占位符
+        /// </summary>
+        /// <param name="format"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        public static string FormatWithParams(this string format, Dictionary<string, object> args)
+        {
+            return Regex.Replace(
+                format,
+                @"\{(\w+)\}", // 匹配 {变量名} 格式
+                match => {
+                    var key = match.Groups[1].Value;
+                    return args.TryGetValue(key, out var value)
+                        ? value?.ToString() ?? string.Empty
+                        : match.Value;
+                });
         }
 
         #endregion
 
         #region 数据转换
 
-        private static readonly string[] _trueValues = { "true", "1", "yes", "y", "是" };
-        private static readonly string[] _falseValues = { "false", "0", "no", "n", "否" };
+        private static readonly string[] _trueValues = ["true", "1", "yes", "y", "是"];
+        private static readonly string[] _falseValues = ["false", "0", "no", "n", "否"];
         private static readonly IFormatProvider _defaultFormat = CultureInfo.CurrentCulture;
 
         #region 整型
@@ -106,5 +138,6 @@ namespace TS.Shared.Extension
         #endregion
 
         #endregion
+
     }
 }

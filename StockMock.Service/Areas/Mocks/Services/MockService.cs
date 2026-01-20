@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StockMock.Core.Mocks;
-using StockMock.Repository;
+using StockMock.Data;
 using StockMock.Service.Areas.Configs.Services;
 using StockMock.Service.Areas.Mocks.Dtos;
 using StockMock.Service.FluentValidation;
@@ -30,7 +30,7 @@ namespace StockMock.Service.Areas.Mocks.Services
 
         private async Task ValidateAsync(MockDto dto, bool isRequiredId = false)
         {
-            MockDtoValidator validator = new MockDtoValidator(isRequiredId);
+            MockDtoValidator validator = new(isRequiredId);
             var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
 
             if (!validationResult.IsValid)
@@ -41,17 +41,11 @@ namespace StockMock.Service.Areas.Mocks.Services
         {
             await ValidateAsync(dto);
 
-            var stock = await _context.Stocks.FirstOrDefaultAsync(e => e.Code == dto.StockCode, _cancellationToken);
-            if (stock == null)
-                throw new ApplicationExcption("股票代码不存在");
-
-            if (!await _dayService.IsWorkDayAsync(dto.MockDate))
+            var stock = await _context.Stocks.FirstOrDefaultAsync(e => e.Code == dto.StockCode, _cancellationToken) ?? throw new ApplicationExcption("股票代码不存在");
+            if (!_dayService.IsWorkDay(dto.MockDate))
                 throw new ApplicationExcption("非交易日，无法作为模拟起始日期");
 
-            var stockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.StockId == stock.Id && e.Date == dto.MockDate, _cancellationToken);
-            if (stockDate == null)
-                throw new ApplicationExcption("未找到对应股票日期数据，无法作为模拟起始日期");
-
+            var stockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.StockId == stock.Id && e.Date == dto.MockDate, _cancellationToken) ?? throw new ApplicationExcption("未找到对应股票日期数据，无法作为模拟起始日期");
             var mock = CreatNewMock();
 
             await _context.Mocks.AddAsync(mock, _cancellationToken);
@@ -68,10 +62,10 @@ namespace StockMock.Service.Areas.Mocks.Services
                     MockDate = dto.MockDate,
                 };
 
-                var calResult = CalMaxPositionQuantityAndAmount();
-                newMock.MaxPositionQuantity = calResult.shares;
-                newMock.BaseAmount = calResult.amount;
-                newMock.ToppingUpAmount = Math.Ceiling(calResult.amount * 1.2m);
+                var (shares, amount) = CalMaxPositionQuantityAndAmount();
+                newMock.MaxPositionQuantity = shares;
+                newMock.BaseAmount = amount;
+                newMock.ToppingUpAmount = Math.Ceiling(amount * 1.2m);
 
                 return newMock;
             }
@@ -90,10 +84,7 @@ namespace StockMock.Service.Areas.Mocks.Services
         public async Task CancelAsync(MockDto dto)
         {
             await ValidateAsync(dto, true);
-            var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken);
-            if (old == null)
-                throw new ApplicationExcption("该模拟数据不存在");
-
+            var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken) ?? throw new ApplicationExcption("该模拟数据不存在");
             if (old.Status == MockStatus.canceled)
                 throw new ApplicationExcption("该模拟数据已取消，无法重复取消");
 
@@ -105,11 +96,8 @@ namespace StockMock.Service.Areas.Mocks.Services
         public async Task FinishAsync(MockDto dto)
         {
             await ValidateAsync(dto, true);
-            var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken);
-            if (old == null)
-                throw new ApplicationExcption("该模拟数据不存在");
-
-            if(old.Status == MockStatus.canceled)
+            var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken) ?? throw new ApplicationExcption("该模拟数据不存在");
+            if (old.Status == MockStatus.canceled)
                 throw new ApplicationExcption("该模拟数据已取消，无法置为完成");
 
             if (old.Status != MockStatus.finished)
@@ -125,10 +113,7 @@ namespace StockMock.Service.Areas.Mocks.Services
         public async Task RestartAsync(MockDto dto)
         {
             await ValidateAsync(dto, true);
-            var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken);
-            if (old == null)
-                throw new ApplicationExcption("该模拟数据不存在");
-
+            var old = await _context.Mocks.FirstOrDefaultAsync(e => e.Id == dto.Id, _cancellationToken) ?? throw new ApplicationExcption("该模拟数据不存在");
             if (old.Status != MockStatus.finished)
                 throw new ApplicationExcption("该模拟数据未完成，无法重新开始");
 

@@ -23,6 +23,11 @@
                 action(item);
             }
         }
+
+        public static bool HasData<T>(this IEnumerable<T>? source)
+        {
+            return source != null && source.Any();
+        }
     }
 }
 

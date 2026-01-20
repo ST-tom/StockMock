@@ -4,7 +4,7 @@ using StockMock.Core.Accounts;
 using TS.Shared.Extension;
 using TS.Shared.Util;
 
-namespace StockMock.Repository.Accounts
+namespace StockMock.Data.Accounts
 {
     public class AccountConfiguration : IEntityTypeConfiguration<Account>
     {

@@ -12,8 +12,7 @@ namespace TS.Shared.Util
             if (string.IsNullOrEmpty(plainText))
                 return string.Empty;
 
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException("秘钥不能为空");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
             // 确保密钥长度为32字节(256位)
             byte[] keyBytes = Encoding.UTF8.GetBytes(key.PadRight(32).Substring(0, 32));
@@ -29,13 +28,13 @@ namespace TS.Shared.Util
 
             // 创建加密器
             ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
-            using MemoryStream msEncrypt = new MemoryStream();
+            using MemoryStream msEncrypt = new();
 
             // 先写入IV，解密时需要用到
             msEncrypt.Write(iv, 0, iv.Length);
 
-            using CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write);
-            using StreamWriter swEncrypt = new StreamWriter(csEncrypt);
+            using CryptoStream csEncrypt = new(msEncrypt, encryptor, CryptoStreamMode.Write);
+            using StreamWriter swEncrypt = new(csEncrypt);
             // 写入要加密的数据
             swEncrypt.Write(plainText);
 
@@ -48,8 +47,7 @@ namespace TS.Shared.Util
             if (string.IsNullOrEmpty(cipherText))
                 return string.Empty;
 
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException("秘钥不能为空");
+            ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
             // 确保密钥长度为32字节(256位)
             byte[] keyBytes = Encoding.UTF8.GetBytes(key.PadRight(32).Substring(0, 32));
@@ -68,9 +66,9 @@ namespace TS.Shared.Util
             // 创建解密器
             ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
-            using MemoryStream msDecrypt = new MemoryStream(cipherBytes, 16, cipherBytes.Length - 16);
-            using CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
-            using StreamReader srDecrypt = new StreamReader(csDecrypt);
+            using MemoryStream msDecrypt = new(cipherBytes, 16, cipherBytes.Length - 16);
+            using CryptoStream csDecrypt = new(msDecrypt, decryptor, CryptoStreamMode.Read);
+            using StreamReader srDecrypt = new(csDecrypt);
 
             // 读取解密后的数据
             return srDecrypt.ReadToEnd();
@@ -96,12 +94,10 @@ namespace TS.Shared.Util
         {
             if (string.IsNullOrEmpty(input))
                 return string.Empty;
-
-            using MD5 md5 = MD5.Create();
             byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-            byte[] hashBytes = md5.ComputeHash(inputBytes);
+            byte[] hashBytes = MD5.HashData(inputBytes);
 
-            return BitConverter.ToString(hashBytes).Replace("-", "");
+            return Convert.ToHexString(hashBytes);
         }
 
         public static bool CheckMD5(string input, string md5, bool throwException = false)
@@ -123,12 +119,10 @@ namespace TS.Shared.Util
         {
             if (string.IsNullOrEmpty(input))
                 throw new ArgumentNullException(nameof(input));
-
-            using SHA256 sha256 = SHA256.Create();
             byte[] inputBytes = Encoding.UTF8.GetBytes(input);
-            byte[] hashBytes = sha256.ComputeHash(inputBytes);
+            byte[] hashBytes = SHA256.HashData(inputBytes);
 
-            return BitConverter.ToString(hashBytes).Replace("-", "");
+            return Convert.ToHexString(hashBytes);
         }
 
         public static bool CheckSHA256(string input, string sha256, bool throwException = false)

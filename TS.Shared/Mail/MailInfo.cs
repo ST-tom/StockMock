@@ -1,8 +1,8 @@
-﻿using Shared.Utils;
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 using System.Text;
 using TS.Shared.Extension;
+using TS.Shared.Util;
 
 namespace TS.Shared.Mail
 {
@@ -83,7 +83,7 @@ namespace TS.Shared.Mail
 
         public List<string> ValidateErrors()
         {
-            List<string> errors = new();
+            List<string> errors = [];
 
             if (this == null)
                 errors.Add("邮件信息实例不能为空");

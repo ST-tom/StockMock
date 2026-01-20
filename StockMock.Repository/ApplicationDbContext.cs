@@ -6,16 +6,10 @@ using StockMock.Core.Mocks;
 using StockMock.Core.Stocks;
 using StockMock.Core.Accounts;
 
-namespace StockMock.Repository
+namespace StockMock.Data
 {
-    public class ApplicationDbContext : DbContext
+    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
-
-        }
-
         public DbSet<Account>Accounts => Set<Account>();
 
         public DbSet<Day>Days => Set<Day>();
@@ -41,7 +35,7 @@ namespace StockMock.Repository
         protected override void ConfigureConventions(ModelConfigurationBuilder modelBuilder)
         {
             //移除EFCore默认约束，EF迁移时自动添加s的复数形式
-            modelBuilder.Conventions.Remove(typeof(TableNameFromDbSetConvention));
+            modelBuilder.Conventions.Remove<TableNameFromDbSetConvention>();
         }
     }
 }

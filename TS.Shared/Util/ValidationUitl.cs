@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using TS.Shared.Extension;
 
-namespace Shared.Utils
+namespace TS.Shared.Util
 {
     public class ValidationUitl
     {

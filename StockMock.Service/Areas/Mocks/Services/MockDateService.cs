@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StockMock.Core.Mocks;
-using StockMock.Repository;
+using StockMock.Data;
 using StockMock.Service.Areas.Configs.Services;
 using StockMock.Service.Areas.Mocks.Dtos;
 using StockMock.Service.FluentValidation;
@@ -25,7 +25,7 @@ namespace StockMock.Service.Areas.Mocks.Services
 
         private async Task ValidateAsync(MockDateDto dto)
         {
-            MockDateDtoValidator validator = new MockDateDtoValidator();
+            MockDateDtoValidator validator = new();
             var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
 
             if (!validationResult.IsValid)
@@ -36,25 +36,16 @@ namespace StockMock.Service.Areas.Mocks.Services
         {
             await ValidateAsync(dto);
 
-            var mock = await _context.Mocks.FirstOrDefaultAsync(x => x.Id == dto.MockId);
-            if (mock == null)
-                throw new ApplicationExcption("未找到对应的模拟股票操作数据");
-
+            var mock = await _context.Mocks.FirstOrDefaultAsync(x => x.Id == dto.MockId) ?? throw new ApplicationExcption("未找到对应的模拟股票操作数据");
             if (mock.Status != MockStatus.created || mock.Status != MockStatus.mocking)
                 throw new ApplicationExcption("模拟股票操作数据状态不允许继续操作");
 
-            if(!await _dayService.IsWorkDayAsync(dto.Date))
+            if(!_dayService.IsWorkDay(dto.Date))
                 throw new ApplicationExcption("非工作日");
 
-            var stock = await _context.Stocks.FirstOrDefaultAsync(e => e.Id == mock.StockId);
-            if(stock == null)
-                throw new ApplicationExcption("未找到对应的股票");
-
-            var stockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.Date == dto.Date && e.StockId == stock.Id);
-            if (stockDate == null)
-                throw new ApplicationExcption("未找到对应的股票日期");
-
-            var preDay = await _dayService.GetPreWorkDayAsync(dto.Date);
+            var stock = await _context.Stocks.FirstOrDefaultAsync(e => e.Id == mock.StockId) ?? throw new ApplicationExcption("未找到对应的股票");
+            var stockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.Date == dto.Date && e.StockId == stock.Id) ?? throw new ApplicationExcption("未找到对应的股票日期");
+            var preDay = _dayService.GetPreWorkDay(dto.Date);
             var preStockDate = await _context.StockDates.FirstOrDefaultAsync(e => e.StockId == stock.Id && e.Date == preDay);
             var preMockDate = await _context.MockDates.FirstOrDefaultAsync(e => e.MockId == mock.Id && e.Date == preDay);
 
@@ -72,7 +63,7 @@ namespace StockMock.Service.Areas.Mocks.Services
             MockDate CreateNewMockDate()
             {
                 decimal positionRate = Math.Round(dto.PositionQuantity / mock.MaxPositionQuantity * 100m, 2);
-                MockDate entity = new MockDate()
+                MockDate entity = new()
                 {
                     StockId = stock.Id,
                     StockName = stock.Name,
@@ -101,13 +92,13 @@ namespace StockMock.Service.Areas.Mocks.Services
             }
         }
 
-        private string RebuildRateData(string strRate, decimal todayRate)
+        private static string RebuildRateData(string strRate, decimal todayRate)
         {
             if(string.IsNullOrWhiteSpace(strRate))
                 return todayRate.ToString();
 
             var rates = strRate.TrySplit<string>(",")!.ToList();
-            if(rates.Count() >= 30)
+            if(rates.Count >= 30)
                 rates.RemoveRange(0, rates.Count - 29);
 
             rates.Add(todayRate.ToString());
@@ -121,9 +112,9 @@ namespace StockMock.Service.Areas.Mocks.Services
         /// <param name="gain">涨幅</param>
         /// <param name="maxGain">最大涨幅</param>
         /// <returns></returns>
-        private PredictionType CalPredictionType(decimal gain, decimal maxGain = 10)
+        private static PredictionType CalPredictionType(decimal gain, decimal maxGain = 10)
         {
-            decimal[] coefficients = { 1, 0.7m, 0.3m, 0.1m, -0.1m, -0.3m, -0.7m, -1 };
+            decimal[] coefficients = [1, 0.7m, 0.3m, 0.1m, -0.1m, -0.3m, -0.7m, -1];
             var dicPredictionType = typeof(PredictionType).ToDictionary().OrderDescending().ToDictionary();
 
             for (int i = 0; i < coefficients.Length; i++)
@@ -143,9 +134,9 @@ namespace StockMock.Service.Areas.Mocks.Services
         /// </summary>
         /// <param name="positionRate"></param>
         /// <returns></returns>
-        private PositionRateType CalPositionRateType(decimal positionRate)
+        private static PositionRateType CalPositionRateType(decimal positionRate)
         {
-            decimal[] coefficients = { 0, 0.33m, 0.67m ,1};
+            decimal[] coefficients = [0, 0.33m, 0.67m ,1];
             var dicPositionRateType = typeof(PositionRateType).ToDictionary().OrderDescending().ToDictionary();
 
             for (int i = 0; i < coefficients.Length; i++)

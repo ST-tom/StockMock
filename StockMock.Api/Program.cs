@@ -1,12 +1,12 @@
 using StockMock.Api;
-using StockMock.Repository;
+using StockMock.Data;
 using StockMock.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container. 
 
-builder.AddRepositoryDependency();
+builder.AddDataDependency();
 builder.AddServiceDependency();
 builder.AddApiDependency();
 

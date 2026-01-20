@@ -1,18 +1,18 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
-using StockMock.Repository;
+using StockMock.Data;
 
 namespace StockMock.Service.Areas
 {
     public class BaseService<T>(ApplicationDbContext context, IMapper mapper, CancellationToken cancellationToken, ILogger<T> logger)
         where T : class
     {
-        protected ApplicationDbContext _context = context;
+        protected readonly ApplicationDbContext _context = context;
 
-        protected IMapper _mapper = mapper;
+        protected readonly IMapper _mapper = mapper;
 
-        protected CancellationToken _cancellationToken = cancellationToken;
+        protected readonly CancellationToken _cancellationToken = cancellationToken;
 
-        protected ILogger<T> _logger = logger;
+        protected readonly ILogger<T> _logger = logger;
     }
 }

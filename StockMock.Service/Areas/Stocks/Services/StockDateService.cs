@@ -3,7 +3,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StockMock.Core.Stocks;
-using StockMock.Repository;
+using StockMock.Data;
 using StockMock.Service.Areas.Configs.Services;
 using StockMock.Service.Areas.Stocks.Dtos;
 using StockMock.Service.FluentValidation;
@@ -27,7 +27,7 @@ namespace StockMock.Service.Areas.Stocks.Services
 
         private async Task ValidateAsync(StockDateDto dto, bool isRequiredId = true)
         {
-            StockDateDtoValidator validator = new StockDateDtoValidator(isRequiredId);
+            StockDateDtoValidator validator = new(isRequiredId);
             var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
 
             if (!validationResult.IsValid)
@@ -42,7 +42,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             if (old != null)
                 throw new ApplicationExcption("该股票在该日期的行情数据已存在，请勿重复添加");
 
-            var isWorkDay = await _dayService.IsWorkDayAsync(dto.Date);
+            var isWorkDay = _dayService.IsWorkDay(dto.Date);
             if (!isWorkDay)
                 throw new ApplicationExcption("非工作日，无法添加行情数据");
 
@@ -92,10 +92,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             if (Id <= 0)
                 throw new ApplicationExcption("Id不合法");
 
-            var old = await _context.StockDates.FindAsync(Id, _cancellationToken);
-            if (old == null)
-                throw new ApplicationExcption("没有找到该行情数据");
-
+            var old = await _context.StockDates.FindAsync(Id, _cancellationToken) ?? throw new ApplicationExcption("没有找到该行情数据");
             return _mapper.Map<StockDateDto>(old);
         }
 
@@ -103,10 +100,7 @@ namespace StockMock.Service.Areas.Stocks.Services
         {
             await ValidateAsync(dto, false);
 
-            var old = await _context.StockDates.FindAsync(dto.Id, _cancellationToken);
-            if (old == null)
-                throw new ApplicationExcption("该股票在该日期的行情数据不存在，无法删除");
-
+            var old = await _context.StockDates.FindAsync(dto.Id, _cancellationToken) ?? throw new ApplicationExcption("该股票在该日期的行情数据不存在，无法删除");
             old = _mapper.Map(dto, old);
             _context.StockDates.Update(old);
             await _context.SaveChangesAsync(_cancellationToken);
@@ -119,7 +113,7 @@ namespace StockMock.Service.Areas.Stocks.Services
 
             var ids = idText.TrySplit<long>();
             var olds = await _context.StockDates.Where(e => ids.Contains(e.Id)).ToListAsync(_cancellationToken);
-            if (!olds.Any())
+            if (olds.Count == 0)
                 throw new ApplicationExcption("没有找到要删除的行情数据");
 
             _context.StockDates.RemoveRange(olds);
@@ -173,7 +167,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             });
             var olds = await _context.StockDates.Where(lamda).ToListAsync(_cancellationToken);
 
-            ImportStringBuilder importSb = new ImportStringBuilder();
+            ImportStringBuilder importSb = new();
             for (int index = 0; index < rows.Count(); index++)
             {
                 importSb.AppendNewLine($"第{index + 2}行数据验证失败：");
@@ -189,7 +183,7 @@ namespace StockMock.Service.Areas.Stocks.Services
                     continue;
                 }
 
-                var isWorkDay = await _dayService.IsWorkDayAsync(row.Date);
+                var isWorkDay = _dayService.IsWorkDay(row.Date);
                 if (!isWorkDay)
                 {
                     importSb.AppendErrmsgAndEndLine("非工作日，无法添加行情数据");
@@ -210,7 +204,7 @@ namespace StockMock.Service.Areas.Stocks.Services
 
                 async Task<bool> ValidateAsync()
                 {
-                    StockDateDtoValidator validator = new StockDateDtoValidator(false);
+                    StockDateDtoValidator validator = new(false);
                     var validationResult = await validator.ValidateAsync(row, _cancellationToken);
 
                     if (!validationResult.IsValid)
