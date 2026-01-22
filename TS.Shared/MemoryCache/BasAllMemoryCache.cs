@@ -3,7 +3,7 @@ using TS.Shared.Extension;
 
 namespace TS.Shared.MemoryCache
 {
-    public abstract class BasAllMemoryCache<Tkey, T> : BaseMemoryCache<Tkey, T>
+    public abstract class BasAllMemoryCache<T, Tkey> : BaseMemoryCache<T, Tkey>
         where Tkey : notnull
     {
         public BasAllMemoryCache() : base()

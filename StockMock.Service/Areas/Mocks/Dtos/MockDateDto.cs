@@ -24,7 +24,7 @@ namespace StockMock.Service.Areas.Mocks.Dtos
         /// <summary>
         /// 仓位比例类型
         /// </summary>
-        public PositionRateType PositionRateType { get; set; }
+        public PositionType PositionRateType { get; set; }
 
         /// <summary>
         /// 预测涨幅

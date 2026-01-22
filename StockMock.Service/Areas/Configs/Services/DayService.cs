@@ -13,62 +13,57 @@ using TS.Shared.Util;
 
 namespace StockMock.Service.Areas.Configs.Services
 {
-    public class DayService(
-        ApplicationDbContext context,
-        IMapper mapper,
-        CancellationToken cancellationToken,
-        ILogger<DayService> logger,
-        WorkDayCache workDayCache
-             ) : BaseService<DayService>(context, mapper, cancellationToken, logger)
+    public class DayService(ApplicationDbContext context, IMapper mapper, ILogger<DayService> logger, DayCache dayCache)
+        : BaseService<DayService>(context, mapper, logger)
     {
-        private readonly WorkDayCache _workDayCache = workDayCache;
+        private readonly DayCache _dayCache = dayCache;
 
         #region 增删改查
 
-        private async Task ValidateAsync(DayDto dto, bool isValidateName = false)
+        private static async Task ValidateAsync(DayDto dto, CancellationToken cancellationToken)
         {
             DayDtoValidator validator = new();
-            var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
+            var validationResult = await validator.ValidateAsync(dto, cancellationToken);
 
             if (!validationResult.IsValid)
                 throw new ApplicationExcption(validationResult.Errors.ToMessage());
         }
 
-        public async Task AddAsync(DayDto dto)
+        public async Task AddAsync(DayDto dto, CancellationToken cancellationToken = default)
         {
-            await ValidateAsync(dto);
+            await ValidateAsync(dto, cancellationToken);
 
-            var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, _cancellationToken);
+            var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, cancellationToken);
             if (old != null)
                 throw new ApplicationExcption("该日期已存在，请勿重复添加");
 
             _context.Days.Add(_mapper.Map<Day>(dto));
-            await _context.SaveChangesAsync(_cancellationToken);
-            await _workDayCache.RefreshAllAsync();
+            await _context.SaveChangesAsync(cancellationToken);
+            await _dayCache.RefreshAllAsync();
         }
 
-        public async Task<DayDto> GetAsync(long id)
+        public async Task<DayDto> GetAsync(long id, CancellationToken cancellationToken = default)
         {
             if (id <= 0)
                 throw new ApplicationExcption("Id不合法");
 
-            var old = await _context.Days.FindAsync(id, _cancellationToken);
+            var old = await _context.Days.FindAsync([id], cancellationToken: cancellationToken);
 
             return old == null ? throw new ApplicationExcption("该日期不存在") : _mapper.Map<DayDto>(old);
         }
 
-        public async Task UpdateAsync(DayDto dto)
+        public async Task UpdateAsync(DayDto dto, CancellationToken cancellationToken = default)
         {
-            await ValidateAsync(dto);
+            await ValidateAsync(dto, cancellationToken);
 
-            var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, _cancellationToken) ?? throw new ApplicationExcption("该日期不存在，请先添加");
+            var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, cancellationToken) ?? throw new ApplicationExcption("该日期不存在，请先添加");
             if (old.IsWorkDay != dto.IsWorkDay)
             {
                 old.IsWorkDay = dto.IsWorkDay;
 
                 _context.Days.Update(old);
-                await _context.SaveChangesAsync(_cancellationToken);
-                await _workDayCache.RefreshAllAsync();
+                await _context.SaveChangesAsync(cancellationToken);
+                await _dayCache.RefreshAllAsync();
             }
         }
 
@@ -82,12 +77,12 @@ namespace StockMock.Service.Areas.Configs.Services
         /// <param name="dto"></param>
         /// <returns></returns>
         /// <exception cref="ApplicationExcption"></exception>
-        public async Task BuildYearDaysAsync(DayDto dto)
+        public async Task BuildYearDaysAsync(DayDto dto, CancellationToken cancellationToken = default)
         {
-            await ValidateAsync(dto);
+            await ValidateAsync(dto, cancellationToken);
 
             var year = dto.Date.Year;
-            var dayDic = await _context.Days.Where(e => e.Date.Year == year).ToDictionaryAsync(e => e.Date, _cancellationToken);
+            var dayDic = await _context.Days.Where(e => e.Date.Year == year).ToDictionaryAsync(e => e.Date, cancellationToken);
 
             if (dayDic.Count == 0)
                 throw new ApplicationExcption("该年份没有节日数据，请先添加特殊日期数据");
@@ -105,12 +100,13 @@ namespace StockMock.Service.Areas.Configs.Services
                         {
                             Date = date,
                             IsWorkDay = date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday
-                        });
+                        },
+                        cancellationToken);
 
                 date = date.AddDays(1);
             }
 
-            await _context.SaveChangesAsync(_cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         #endregion
@@ -123,16 +119,16 @@ namespace StockMock.Service.Areas.Configs.Services
         /// <param name="pageDto"></param>
         /// <returns></returns>
         /// <exception cref="ApplicationExcption"></exception>
-        public async Task<PageList<Day>> LoadAsync(DayPageDto pageDto)
+        public async Task<PageList<Day>> LoadAsync(DayPageDto pageDto, CancellationToken cancellationToken = default)
         {
             var validator = new DayPageDtoValidator();
-            var validationResult = await validator.ValidateAsync(pageDto, _cancellationToken);
+            var validationResult = await validator.ValidateAsync(pageDto, cancellationToken);
 
             if (!validationResult.IsValid)
                 throw new ApplicationExcption(validationResult.Errors.ToMessage());
 
             var queryable = _context.Days.Where(pageDto.GetWhereLamda());
-            var pageList = await pageDto.LoadAsync(queryable, _cancellationToken);
+            var pageList = await pageDto.LoadAsync(queryable, cancellationToken);
 
             return pageList;
         }
@@ -140,6 +136,7 @@ namespace StockMock.Service.Areas.Configs.Services
         #endregion
 
         #region 工作日相关
+
         /// <summary>
         /// 判断是否是工作日
         /// </summary>
@@ -147,11 +144,11 @@ namespace StockMock.Service.Areas.Configs.Services
         /// <returns></returns>
         public bool IsWorkDay(DateOnly date)
         {
-            var day = _workDayCache.Get(date);
+            Day? day = _dayCache.Get(date);
             if (day == null)
                 return false;
 
-            return !day.IsWorkDay;
+            return day.IsWorkDay;
         }
 
         /// <summary>
@@ -167,20 +164,67 @@ namespace StockMock.Service.Areas.Configs.Services
         /// <param name="date"></param>
         /// <returns></returns>
         /// <exception cref="ApplicationExcption"></exception>
-        public DateOnly GetPreWorkDay(DateOnly date)
+        public DateOnly GetPreWorkDay(DateOnly? date = default)
         {
-            int count = 0;
+            date ??= DateTimeUtil.GetToday();
             Day? preDay;
             do
             {
-                preDay = _workDayCache.Get(date);
-                date.AddDays(-1);
-            } while (count < 14 && preDay != null);
+                date.Value.AddDays(-1);
+                preDay = _dayCache.Get(date.Value);
+            } while (preDay != default && !preDay.IsWorkDay);
 
-            if (preDay == null)
-                throw new ApplicationExcption("该日期不存在，请先添加或者非工作日");
+            if (preDay == default)
+                throw new ApplicationExcption("未能获取前一个工作日，请补充工作日信息");
 
             return preDay.Date;
+        }
+
+        /// <summary>
+        /// 获取最近的工作日
+        /// </summary>
+        /// <param name="date"></param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationExcption"></exception>
+        public List<DateOnly> GetPreWorkDays(DateOnly? date = default, int dayRange = 30)
+        {
+            date ??= DateTimeUtil.GetToday();
+
+            List<DateOnly> dates = [];
+            Day? day = default;
+            do
+            {
+                day = _dayCache.Get(date.Value);
+                if (day != default && day.IsWorkDay)
+                {
+                    dates.Add(day.Date);
+                }
+                date.Value.AddDays(-1);
+            } while (day != default && dates.Count < dayRange);
+
+            return dates;
+        }
+
+        /// <summary>
+        /// 获取最近的工作日
+        /// </summary>
+        /// <param name="date"></param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationExcption"></exception>
+        public DateOnly GetNextWorkDay(DateOnly? date = default)
+        {
+            date ??= DateTimeUtil.GetToday();
+            Day? nextDay;
+            do
+            {
+                date.Value.AddDays(1);
+                nextDay = _dayCache.Get(date.Value);
+            } while (nextDay != default && !nextDay.IsWorkDay);
+
+            if (nextDay == default)
+                throw new ApplicationExcption("未能获取下一个工作日，请补充工作日信息");
+
+            return nextDay.Date;
         }
 
         #endregion

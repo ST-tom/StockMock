@@ -10,22 +10,15 @@ namespace StockMock.Service
         /// <summary>
         /// 模拟数据单股仓位最大金额/元
         /// </summary>
-        public decimal mock_position_max_amount = 100000;
-
-        #endregion
-
-        #region
-
-
+        public static decimal mock_position_max_amount = 100000;
 
         #endregion
 
         #region 初始化配置文件
 
-        public void Init(IHostApplicationBuilder builder)
+        public static void Init(IHostApplicationBuilder builder)
         {
             var configuration = builder.Configuration;
-            mock_position_max_amount = configuration.GetSection("Stock").GetValue("MockPositionMaxAmount", 100000);
         }
 
         #endregion

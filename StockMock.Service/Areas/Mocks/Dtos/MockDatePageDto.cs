@@ -10,6 +10,11 @@ namespace StockMock.Service.Areas.Mocks.Dtos
     public class MockDatePageDto : PageDto
     {
         /// <summary>
+        /// 账户编号
+        /// </summary>
+        public long AccountId { get; set; }
+
+        /// <summary>
         /// 编号
         /// </summary>
         public long Id { get; set; }

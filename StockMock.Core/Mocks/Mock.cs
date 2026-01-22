@@ -1,4 +1,5 @@
-﻿using StockMock.Core.Stocks;
+﻿using StockMock.Core.Accounts;
+using StockMock.Core.Stocks;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -6,6 +7,16 @@ namespace StockMock.Core.Mocks
 {
     public class Mock : BaseEntity
     {
+        /// <summary>
+        /// 账户编号
+        /// </summary>
+        public long AccountId { get; set; }
+
+        /// <summary>
+        /// 账户股票编号
+        /// </summary>
+        public long AccountStockId { get; set; }
+
         /// <summary>
         /// 股票编号
         /// </summary>
@@ -42,9 +53,9 @@ namespace StockMock.Core.Mocks
         public decimal BaseAmount { get; set; }
 
         /// <summary>
-        /// 可补仓金额
+        /// 亏损上限金额
         /// </summary>
-        public decimal ToppingUpAmount { get; set; }
+        public decimal LossLimitAmount { get; set; }
 
         /// <summary>
         /// 最大持仓数量
@@ -109,9 +120,14 @@ namespace StockMock.Core.Mocks
             return strScores.Select(e => Convert.ToDecimal(e)).TakeLast(days).Average();
         }
 
-        public List<MockDate> MockDates { get; } = new List<MockDate>();
+        public Account Account { get; set; }
+
+        public AccountStock AccountStock { get; set; }
 
         public Stock Stock { get; set; }
+
+        public ICollection<MockDate> MockDates { get; } = [];
+
     }
 
     public enum MockStatus

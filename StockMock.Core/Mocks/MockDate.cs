@@ -1,10 +1,15 @@
-﻿using StockMock.Core;
+﻿using StockMock.Core.Accounts;
 using StockMock.Core.Stocks;
 
 namespace StockMock.Core.Mocks
 {
     public class MockDate : BaseEntity
     {
+        /// <summary>
+        /// 账户编号
+        /// </summary>
+        public long AccountId { get; set; }
+
         /// <summary>
         /// 股票代码
         /// </summary>
@@ -53,12 +58,7 @@ namespace StockMock.Core.Mocks
         /// <summary>
         /// 变更数量
         /// </summary>
-        public decimal? ChangeQuantity { get; set; }
-
-        /// <summary>
-        /// 昨日持仓金额
-        /// </summary>
-        public decimal? PrePositionAmount { get; set; }
+        public int ChangeQuantity { get; set; }
 
         /// <summary>
         /// 持仓金额
@@ -86,9 +86,9 @@ namespace StockMock.Core.Mocks
         public decimal PositionRate { get; set; }
 
         /// <summary>
-        /// 仓位比例类型
+        /// 仓位类型
         /// </summary>
-        public PositionRateType PositionRateType { get; set; }
+        public PositionType PositionType { get; set; }
 
         /// <summary>
         /// 预测涨幅
@@ -105,6 +105,8 @@ namespace StockMock.Core.Mocks
         /// </summary>
         public decimal? MockScore { get; set; }
 
+        public Account Account { get; set; }
+
         public Stock Stock { get; set; }
 
         public StockDate StockDate { get; set; }
@@ -113,7 +115,7 @@ namespace StockMock.Core.Mocks
 
     }
 
-    public enum PositionRateType
+    public enum PositionType
     {
         空仓 = 0,
         轻仓 = 1,

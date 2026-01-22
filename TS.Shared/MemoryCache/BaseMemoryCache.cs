@@ -3,7 +3,7 @@ using TS.Shared.Extension;
 
 namespace TS.Shared.MemoryCache
 {
-    public abstract class BaseMemoryCache<TKey, T> : IAsyncDisposable
+    public abstract class BaseMemoryCache<T, TKey> : IAsyncDisposable
         where TKey : notnull
     {
         /// <summary>

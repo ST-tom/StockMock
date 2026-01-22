@@ -1,5 +1,4 @@
-﻿using StockMock.Core;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 namespace StockMock.Core.Stocks
 {
@@ -28,9 +27,9 @@ namespace StockMock.Core.Stocks
         /// </summary>
         public BoardType BoardType { get; set; }
 
-        public List<StockDate> StockDateList { get; } = new List<StockDate>();
+        public ICollection<StockDate> StockDateList { get; set; } = [];
 
-        public List<StockTime> StockTimeList { get; } = new List<StockTime>();
+        public ICollection<StockTime> StockTimeList { get; set; } = []; 
     }
 
     public enum BoardType
@@ -74,6 +73,11 @@ namespace StockMock.Core.Stocks
 
     public static class BoardTypeExtension
     {
+        /// <summary>
+        /// 最大涨幅
+        /// </summary>
+        /// <param name="boardType"></param>
+        /// <returns></returns>
         public static decimal GetMaxGain(this BoardType boardType)
         {
             return boardType switch
@@ -84,6 +88,24 @@ namespace StockMock.Core.Stocks
                 BoardType.BSE => 30,
                 BoardType.NEEQInnovationLayer => 50,
                 _ => 0,
+            };
+        }
+
+        /// <summary>
+        /// 成本费率
+        /// </summary>
+        /// <param name="boardType"></param>
+        /// <returns></returns>
+        public static decimal GetCostRate(this BoardType boardType)
+        {
+            return boardType switch
+            {
+                //BoardType.MainBoard => 10,
+                //BoardType.STARMarket => 20,
+                //BoardType.ChiNextBoard => 20,
+                //BoardType.BSE => 30,
+                //BoardType.NEEQInnovationLayer => 50,
+                _ => (decimal)0.0005,
             };
         }
     }

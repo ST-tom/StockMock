@@ -2,7 +2,7 @@
 
 namespace TS.Shared.MemoryCache
 {
-    public abstract class BaseActiveMemoryCache<TKey, T> : BaseMemoryCache<TKey, T>
+    public abstract class BaseActiveMemoryCache<T, TKey> : BaseMemoryCache<T, TKey>
         where TKey : notnull
     {
         public BaseActiveMemoryCache() : base()

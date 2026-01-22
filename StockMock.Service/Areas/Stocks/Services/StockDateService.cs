@@ -15,30 +15,25 @@ using TS.Shared.Util;
 
 namespace StockMock.Service.Areas.Stocks.Services
 {
-    public class StockDateService(
-        ApplicationDbContext context, 
-        IMapper mapper, 
-        CancellationToken cancellationToken, 
-        Logger<StockDateService> logger, 
-        DayService dayService) 
-        : BaseDayService<StockDateService>(context, mapper, cancellationToken, logger, dayService)
+    public class StockDateService(ApplicationDbContext context, IMapper mapper, Logger<StockDateService> logger, DayService dayService)
+        : BaseDayService<StockDateService>(context, mapper, logger, dayService)
     {
         #region 增删改查
 
-        private async Task ValidateAsync(StockDateDto dto, bool isRequiredId = true)
+        private static async Task ValidateAsync(StockDateDto dto, bool isRequiredId, CancellationToken cancellationToken)
         {
             StockDateDtoValidator validator = new(isRequiredId);
-            var validationResult = await validator.ValidateAsync(dto, _cancellationToken);
+            var validationResult = await validator.ValidateAsync(dto, cancellationToken);
 
             if (!validationResult.IsValid)
                 throw new ApplicationExcption(validationResult.Errors.ToMessage());
         }
 
-        public async Task AddAsync(StockDateDto dto)
+        public async Task AddAsync(StockDateDto dto, CancellationToken cancellationToken = default)
         {
-            await ValidateAsync(dto, false);
+            await ValidateAsync(dto, false, cancellationToken);
 
-            var old = await _context.StockDates.FirstOrDefaultAsync(e => e.StockCode == dto.StockCode && e.Date == dto.Date, _cancellationToken);
+            var old = await _context.StockDates.FirstOrDefaultAsync(e => e.StockCode == dto.StockCode && e.Date == dto.Date, cancellationToken);
             if (old != null)
                 throw new ApplicationExcption("该股票在该日期的行情数据已存在，请勿重复添加");
 
@@ -50,7 +45,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             {
                 StockDate? predyesterday = null;
                 if (!dto.Gain.HasValue)
-                    predyesterday = await _context.StockDates.OrderByDescending(e => e.Date).FirstOrDefaultAsync(e => e.StockCode == dto.StockCode && e.Date < dto.Date, _cancellationToken);
+                    predyesterday = await _context.StockDates.OrderByDescending(e => e.Date).FirstOrDefaultAsync(e => e.StockCode == dto.StockCode && e.Date < dto.Date, cancellationToken);
 
                 if (predyesterday == null)
                     throw new ApplicationExcption("该股票在该日期之前的行情数据不存在，无法计算缺失数据");
@@ -79,61 +74,61 @@ namespace StockMock.Service.Areas.Stocks.Services
                         throw new ApplicationExcption("收盘价或昨日收盘价未录入，无法计算得出");
                 }
 
-                await ValidateAsync(dto, false);
+                await ValidateAsync(dto, false, cancellationToken);
             }
 
             var stockDate = _mapper.Map<StockDate>(dto);
-            await _context.StockDates.AddAsync(stockDate, _cancellationToken);
-            await _context.SaveChangesAsync(_cancellationToken);
+            await _context.StockDates.AddAsync(stockDate, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<StockDateDto> GetAsync(long Id)
+        public async Task<StockDateDto> GetAsync(long Id, CancellationToken cancellationToken = default)
         {
             if (Id <= 0)
                 throw new ApplicationExcption("Id不合法");
 
-            var old = await _context.StockDates.FindAsync(Id, _cancellationToken) ?? throw new ApplicationExcption("没有找到该行情数据");
+            var old = await _context.StockDates.FindAsync([Id], cancellationToken) ?? throw new ApplicationExcption("没有找到该行情数据");
             return _mapper.Map<StockDateDto>(old);
         }
 
-        public async Task UpdateAsync(StockDateDto dto)
+        public async Task UpdateAsync(StockDateDto dto, CancellationToken cancellationToken = default)
         {
-            await ValidateAsync(dto, false);
+            await ValidateAsync(dto, false, cancellationToken);
 
-            var old = await _context.StockDates.FindAsync(dto.Id, _cancellationToken) ?? throw new ApplicationExcption("该股票在该日期的行情数据不存在，无法删除");
+            var old = await _context.StockDates.FindAsync([dto.Id], cancellationToken) ?? throw new ApplicationExcption("该股票在该日期的行情数据不存在，无法删除");
             old = _mapper.Map(dto, old);
             _context.StockDates.Update(old);
-            await _context.SaveChangesAsync(_cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task DeleteAsync(string idText)
+        public async Task DeleteAsync(string idText, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(idText))
                 throw new ApplicationExcption("没有需要删除的行情数据");
 
             var ids = idText.TrySplit<long>();
-            var olds = await _context.StockDates.Where(e => ids.Contains(e.Id)).ToListAsync(_cancellationToken);
+            var olds = await _context.StockDates.Where(e => ids.Contains(e.Id)).ToListAsync(cancellationToken);
             if (olds.Count == 0)
                 throw new ApplicationExcption("没有找到要删除的行情数据");
 
             _context.StockDates.RemoveRange(olds);
-            await _context.SaveChangesAsync(_cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         #endregion
 
         #region 分页查询
 
-        public async Task<PageList<StockDate>> LoadAsync(StockDatePageDto pageDto)
+        public async Task<PageList<StockDate>> LoadAsync(StockDatePageDto pageDto, CancellationToken cancellationToken = default)
         {
             var validator = new StockDatePageDtoValidator();
-            var validationResult = await validator.ValidateAsync(pageDto, _cancellationToken);
+            var validationResult = await validator.ValidateAsync(pageDto, cancellationToken);
 
             if (!validationResult.IsValid)
                 throw new ApplicationExcption(validationResult.Errors.ToMessage());
 
             var queryable = _context.StockDates.Where(pageDto.GetWhereLamda());
-            var pageList = await pageDto.LoadAsync(queryable, _cancellationToken);
+            var pageList = await pageDto.LoadAsync(queryable, cancellationToken);
 
             return pageList;
         }
@@ -142,12 +137,12 @@ namespace StockMock.Service.Areas.Stocks.Services
 
         #region 导入数据
 
-        public async Task ImportAsync(Stream stream, string fileName)
+        public async Task ImportAsync(Stream stream, string fileName, CancellationToken cancellationToken = default)
         {
             IEnumerable<StockDateDto>? rows = default;
             try
             {
-                rows = await ExcelUtil.ReadExcelAsync<StockDateDto>(stream, fileName, cancellationToken: _cancellationToken);
+                rows = await ExcelUtil.ReadExcelAsync<StockDateDto>(stream, fileName, cancellationToken: cancellationToken);
                 if (rows == null || !rows.Any())
                     throw new ApplicationExcption("没有找到有效数据");
             }
@@ -165,7 +160,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             {
                 lamda.And(e => e.StockCode == row.StockCode && e.Date == row.Date);
             });
-            var olds = await _context.StockDates.Where(lamda).ToListAsync(_cancellationToken);
+            var olds = await _context.StockDates.Where(lamda).ToListAsync(cancellationToken);
 
             ImportStringBuilder importSb = new();
             for (int index = 0; index < rows.Count(); index++)
@@ -205,7 +200,7 @@ namespace StockMock.Service.Areas.Stocks.Services
                 async Task<bool> ValidateAsync()
                 {
                     StockDateDtoValidator validator = new(false);
-                    var validationResult = await validator.ValidateAsync(row, _cancellationToken);
+                    var validationResult = await validator.ValidateAsync(row, cancellationToken);
 
                     if (!validationResult.IsValid)
                     {
@@ -217,7 +212,7 @@ namespace StockMock.Service.Areas.Stocks.Services
                 }
             }
 
-            await _context.SaveChangesAsync(_cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         #endregion

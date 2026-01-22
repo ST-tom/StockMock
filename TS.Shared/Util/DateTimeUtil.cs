@@ -32,7 +32,7 @@
             return DateOnly.FromDateTime(DateTime.Now.AddYears(1));
         }
 
-        public static DateOnly GetCurrentDay()
+        public static DateOnly GetToday()
         {
             return DateOnly.FromDateTime(DateTime.Now);
         } 

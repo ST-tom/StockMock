@@ -51,10 +51,10 @@ namespace TS.Shared.Extension
             return string.Join(joinStr, strings);
         }
 
-        public static T[]? TrySplit<T>(this string s, string separator = ",", T[]? defaultValue = default, StringSplitOptions options = StringSplitOptions.RemoveEmptyEntries)
+        public static T[] TrySplit<T>(this string s, string separator = ",", StringSplitOptions options = StringSplitOptions.RemoveEmptyEntries)
         {
             if (string.IsNullOrEmpty(s))
-                return defaultValue;
+                return [];
 
             return s.Split([separator], options).Select(x => (T)Convert.ChangeType(x, typeof(T))).ToArray();
         }

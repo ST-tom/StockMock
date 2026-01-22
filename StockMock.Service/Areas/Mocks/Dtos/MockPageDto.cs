@@ -8,7 +8,12 @@ using TS.Shared.Query;
 namespace StockMock.Service.Areas.Mocks.Dtos
 {
     public class MockPageDto : PageDto
-    {       
+    {   
+        /// <summary>
+        /// 账户编号
+        /// </summary>
+        public long AccountId { get; set; }
+
         /// <summary>
         /// 编号
         /// </summary>

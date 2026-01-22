@@ -8,10 +8,9 @@ namespace StockMock.Service.Areas
     public class BaseDayService<T>(
         ApplicationDbContext context, 
         IMapper mapper, 
-        CancellationToken cancellationToken,
         ILogger<T> logger, 
         DayService dayService) 
-        : BaseService<T>(context, mapper, cancellationToken, logger)
+        : BaseService<T>(context, mapper, logger)
         where T : class
     {
         protected DayService _dayService = dayService;
