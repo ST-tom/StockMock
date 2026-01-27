@@ -9,13 +9,17 @@ namespace StockMock.Api.User
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public long Id { get; set; }
+
         public string? Name { get; set; }
+
+        public IEnumerable<string> Roles { get; set; }
 
         public CurrentUser(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
             Id = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier).ToLong() ?? 0;
             Name = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name);
+            Roles = _httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role).Select(x => x.Value) ?? [];
         }
     }
 }

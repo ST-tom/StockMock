@@ -7,7 +7,7 @@ namespace TS.Shared.Excption
         /// <summary>
         /// 获取异常的完整信息
         /// </summary>
-        public static string GetFullMessage(this Exception ex, int maxLength = 2048)
+        public static string GetFullMessageAndTrace(this Exception ex, int maxLength = 2048)
         {
             if (ex == null)
                 return string.Empty;

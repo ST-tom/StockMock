@@ -2,17 +2,17 @@
 
 namespace TS.Shared.MemoryCache
 {
-    public abstract class BaseActiveMemoryCache<T, TKey> : BaseMemoryCache<T, TKey>
+    public abstract class BaseActiveObjectMemoryCache<T, TKey> : BaseMemoryCache<T, TKey>
         where TKey : notnull
     {
-        public BaseActiveMemoryCache() : base()
+        public BaseActiveObjectMemoryCache() : base()
         {
             ArgumentNullException.ThrowIfNull(QueryKeyDataFunc);
-
-            CacheEntryOptions = AbsoluteAndSlidingCahceEntryOptions;
         }
 
         protected virtual bool IsAutoRefreshExpired { get; set; } = false;
+
+        protected override MemoryCacheEntryOptions CacheEntryOptions => AbsoluteAndSlidingCahceEntryOptions;
 
         /// <summary>
         /// 绝对和滑动过期时间缓存配置

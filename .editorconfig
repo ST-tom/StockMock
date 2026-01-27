@@ -2,3 +2,21 @@
 
 # CS8618: 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑添加 "required" 修饰符或声明为可为 null。
 dotnet_diagnostic.CS8618.severity = silent
+
+# CA1822: 将成员标记为 static
+dotnet_diagnostic.CA1822.severity = silent
+
+# CA2208: 正确实例化参数异常
+dotnet_diagnostic.CA2208.severity = silent
+
+# IDE0057: 使用范围运算符
+dotnet_diagnostic.IDE0057.severity = silent
+
+# IDE0305: 简化集合初始化
+dotnet_diagnostic.IDE0305.severity = silent
+
+# SYSLIB1045: 转换为“GeneratedRegexAttribute”。
+dotnet_diagnostic.SYSLIB1045.severity = silent
+
+# CA1068: CancellationToken 参数必须最后出现
+dotnet_diagnostic.CA1068.severity = silent

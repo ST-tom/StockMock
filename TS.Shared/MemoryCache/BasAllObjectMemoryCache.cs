@@ -3,21 +3,21 @@ using TS.Shared.Extension;
 
 namespace TS.Shared.MemoryCache
 {
-    public abstract class BasAllMemoryCache<T, Tkey> : BaseMemoryCache<T, Tkey>
+    public abstract class BasAllObjectMemoryCache<T, Tkey> : BaseMemoryCache<T, Tkey>
         where Tkey : notnull
     {
-        public BasAllMemoryCache() : base()
+        public BasAllObjectMemoryCache() : base()
         {
             ArgumentNullException.ThrowIfNull(QueryDataFuncAsync);
             ArgumentNullException.ThrowIfNull(GetKeyFunc);
-
-            CacheEntryOptions = AllRefreshCahceEntryOptions;
         }
 
         /// <summary>
         /// 缓存最后全量刷新时间
         /// </summary>
         public DateTime? LastAllRefreshTime { get; set; }
+
+        protected override MemoryCacheEntryOptions CacheEntryOptions => AllRefreshCahceEntryOptions;
 
         /// <summary>
         /// 全量刷新缓存配置

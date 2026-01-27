@@ -48,7 +48,7 @@ namespace TS.Shared.Extension
             return dic;
         }
        
-        public static int? ToInt(this Enum value, int? defaultValue = null)
+        public static int ToInt(this Enum value, int defaultValue = 0)
         {
             try
             {

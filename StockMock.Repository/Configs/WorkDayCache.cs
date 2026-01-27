@@ -9,7 +9,7 @@ namespace StockMock.Data.Configs
     /// 最近2年日期缓存
     /// </summary>
     /// <param name="dbContext"></param>
-    public class DayCache(ApplicationDbContext dbContext) : BasAllMemoryCache<Day, DateOnly>()
+    public class DayCache(ApplicationDbContext dbContext) : BasAllObjectMemoryCache<Day, DateOnly>()
     {
         private readonly ApplicationDbContext dbContext = dbContext;
 

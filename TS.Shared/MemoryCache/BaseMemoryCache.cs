@@ -54,7 +54,18 @@ namespace TS.Shared.MemoryCache
         /// <summary>
         /// 数据缓存配置
         /// </summary>
-        protected virtual MemoryCacheEntryOptions CacheEntryOptions { get; set; }
+        protected virtual MemoryCacheEntryOptions CacheEntryOptions => DefaultCahceEntryOptions;
+
+        /// <summary>
+        /// 绝对和滑动过期时间缓存配置
+        /// </summary>
+        private MemoryCacheEntryOptions DefaultCahceEntryOptions => new()
+        {
+            Size = Size, //每份缓存所占的大小      
+            Priority = CacheItemPriority.Normal,
+            SlidingExpiration = SlidingExpireTime,
+            AbsoluteExpirationRelativeToNow = AbsoluteExpireTime,
+        };
 
         /// <summary>
         /// 获取缓存key的方法
@@ -162,6 +173,25 @@ namespace TS.Shared.MemoryCache
         {
             if (_cache.TryGetValue(key, out T? value))
                 return value;
+
+            return default;
+        }
+
+        public virtual TOut? Get<TOut>(TKey key)
+            where TOut : T
+        {
+            if (_cache.TryGetValue(key, out T? value))
+            {
+                var targetType = typeof(TOut);
+                if(targetType.IsSimpleType())
+                {
+                    return (TOut)Convert.ChangeType(value!, targetType);
+                }
+                else
+                {
+                    return (TOut)value!;
+                }
+            }
 
             return default;
         }

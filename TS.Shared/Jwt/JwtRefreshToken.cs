@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text.Json.Serialization;
+using TS.Shared.Json;
+using TS.Shared.Util;
 
 namespace TS.Shared.Jwt
 {
@@ -19,11 +19,20 @@ namespace TS.Shared.Jwt
         /// <summary>
         /// 过期时间
         /// </summary>
-        public DateTime Expires { get; set; }
+        public DateTime ExpiredTime { get; set; }
 
         /// <summary>
         /// 创建时间
         /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedTime { get; set; } = DateTime.Now;
+
+        public static JwtRefreshToken New(long userId, TimeSpan expireTimeSpan) =>
+            new()
+            {
+                UserId = userId,
+                CreatedTime = DateTime.Now,
+                ExpiredTime = DateTime.Now.AddTicks(expireTimeSpan.Ticks),
+                Token = RandomNumberUitl.New(),
+            };
     }
 }

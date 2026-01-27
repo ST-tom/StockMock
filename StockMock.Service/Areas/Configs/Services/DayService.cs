@@ -191,7 +191,7 @@ namespace StockMock.Service.Areas.Configs.Services
             date ??= DateTimeUtil.GetToday();
 
             List<DateOnly> dates = [];
-            Day? day = default;
+            Day? day;
             do
             {
                 day = _dayCache.Get(date.Value);

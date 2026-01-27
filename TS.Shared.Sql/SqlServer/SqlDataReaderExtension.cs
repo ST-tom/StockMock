@@ -3,6 +3,7 @@ using System.Data;
 using System.Reflection;
 using TS.Shared.Sql.SqlServer;
 using TS.Shared.Managers;
+using TS.Shared.Extension;
 
 namespace TS.Shared.Sql.SqlServer
 {
@@ -50,7 +51,7 @@ namespace TS.Shared.Sql.SqlServer
             Type targetType = typeof(T);
 
             // 处理值类型/字符串等简单类型（单行单列场景）
-            if (targetType.IsValueType || targetType == typeof(string))
+            if (targetType.IsSimpleType())
             {
                 // 读取第一列的值，为空则返回默认值
                 object value = row.IsNull(0) ? default! : row[0];
