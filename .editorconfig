@@ -20,3 +20,6 @@ dotnet_diagnostic.SYSLIB1045.severity = silent
 
 # CA1068: CancellationToken 参数必须最后出现
 dotnet_diagnostic.CA1068.severity = silent
+
+# CA2254: 模板应为静态表达式
+dotnet_diagnostic.CA2254.severity = silent

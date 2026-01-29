@@ -2,18 +2,18 @@
 
 namespace StockMock.Service.Areas.Accounts.Dtos
 {
-    public class LoginDto
+    public class LogInDto
     {
-        public string LoginAccount { get; set; }
+        public string LogInAccount { get; set; }
 
         public string Password { get; set; }
     }
 
-    public class LoginDtoValidator : AbstractValidator<LoginDto>
+    public class LogInDtoValidator : AbstractValidator<LogInDto>
     {
-        public LoginDtoValidator()
+        public LogInDtoValidator()
         {
-            RuleFor(v => v.LoginAccount)
+            RuleFor(v => v.LogInAccount)
                 .NotEmpty()
                 .WithMessage("登录账号不能为空");
           

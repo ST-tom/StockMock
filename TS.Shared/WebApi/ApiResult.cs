@@ -23,22 +23,16 @@ namespace TS.Shared.WebApi
 
         public object? data;
 
-        public string? trace;
-
-        public string? traceId;
-
-        public static ApiResult OK(string? traceId = default, string? trace = default)
+        public static ApiResult OK()
         {
             return new ApiResult()
             {
                 isOk = true,
                 code = ResultCode.Success,
-                trace = trace,
-                traceId = traceId,
             };
         }
 
-        public static ApiResult OK(string? message, object data, string? traceId = default, string? trace = default)
+        public static ApiResult OK(string? message, object data)
         {
             return new ApiResult()
             {
@@ -46,79 +40,74 @@ namespace TS.Shared.WebApi
                 code = ResultCode.Success,
                 message = message,
                 data = data,
-                trace = trace,
-                traceId = traceId,
             };
         }
 
-        public static ApiResult OK(object data, string? traceId = default, string? trace = default)
+        public static ApiResult OK(object data)
         {
             return new ApiResult()
             {
                 isOk = true,
                 code = ResultCode.Success,
                 data = data,
-                trace = trace,
-                traceId = traceId,
             };
         }
 
-        public static ApiResult Err(string message, string? traceId = null, string? trace = null)
+        public static ApiResult Err(string message)
         {
             return new ApiResult()
             {
                 isOk = false,
                 code = ResultCode.Failure,
                 message = message,
-                trace = trace,
-                traceId = traceId,
             };
         }
 
-        public static ApiResult Err(Exception ex, string? traceId = null, string? trace = null)
+        public static ApiResult Err(Exception ex)
         {
             return new ApiResult()
             {
                 isOk = false,
                 code = ResultCode.Failure,
                 message = ex.Message,
-                trace = trace,
-                traceId = traceId,
             };
         }
 
-        public static ApiResult NoLogin(string? traceId = null, string? trace = null)
+        public static ApiResult NoLogin()
         {
             return new ApiResult()
             {
                 isOk = false,
                 code = ResultCode.NoLogin,
                 message = noLogin,
-                trace = trace,
-                traceId = traceId,
             };
         }
 
-        public static ApiResult NoAuthory(string? traceId = null, string? trace = null)
+        public static ApiResult NoAuthory()
         {
             return new ApiResult()
             {
                 isOk = false,
                 code = ResultCode.NoAuthory,
                 message = noAuthory,
-                trace = trace,
-                traceId = traceId,
             };
         }
 
-        public static ApiResult OutErr(Exception ex, string? traceId = null, string? trace = null)
+        public static ApiResult OutErr(Exception ex)
         {
             return new ApiResult()
             {
                 code = ResultCode.OutFailure,
                 message = ex.Message,
-                trace = trace ?? ex.GetFullMessageAndTrace(),
-                traceId = traceId,
+            };
+        }
+
+        public static ApiResult NotFound()
+        {
+            return new ApiResult()
+            {
+                code = ResultCode.Failure,
+                message = "未找到对应接口",
             };
         }
 
@@ -135,7 +124,22 @@ namespace TS.Shared.WebApi
             var json = JsonSerializer.Serialize(this, jsonOptions);
 
             await response.WriteAsync(json, Encoding.UTF8);
-        }     
+        }
+
+        public async Task ExecuteResultAsync(HttpContext context)
+        {
+            ArgumentNullException.ThrowIfNull(context);
+
+            var response = context.Response;
+            response.StatusCode = HttpStatusCode.OK.ToInt();
+            response.ContentType = "application/json; charset=utf-8";
+
+            // 序列化响应对象
+            var jsonOptions = JsonGlobalConfig.DefaultOptions;
+            var json = JsonSerializer.Serialize(this, jsonOptions);
+
+            await response.WriteAsync(json, Encoding.UTF8);
+        }
     }
 
     public class ResultCode

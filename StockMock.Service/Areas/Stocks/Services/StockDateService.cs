@@ -26,7 +26,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             var validationResult = await validator.ValidateAsync(dto, cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new ApplicationExcption(validationResult.Errors.ToMessage());
+                throw new BizException(validationResult.Errors.ToMessage());
         }
 
         public async Task AddAsync(StockDateDto dto, CancellationToken cancellationToken = default)
@@ -35,11 +35,11 @@ namespace StockMock.Service.Areas.Stocks.Services
 
             var old = await _context.StockDates.FirstOrDefaultAsync(e => e.StockCode == dto.StockCode && e.Date == dto.Date, cancellationToken);
             if (old != null)
-                throw new ApplicationExcption("该股票在该日期的行情数据已存在，请勿重复添加");
+                throw new BizException("该股票在该日期的行情数据已存在，请勿重复添加");
 
             var isWorkDay = _dayService.IsWorkDay(dto.Date);
             if (!isWorkDay)
-                throw new ApplicationExcption("非工作日，无法添加行情数据");
+                throw new BizException("非工作日，无法添加行情数据");
 
             if (!dto.ClosingPrice.HasValue || !dto.Gain.HasValue || !dto.PreClosingPrice.HasValue)
             {
@@ -48,14 +48,14 @@ namespace StockMock.Service.Areas.Stocks.Services
                     predyesterday = await _context.StockDates.OrderByDescending(e => e.Date).FirstOrDefaultAsync(e => e.StockCode == dto.StockCode && e.Date < dto.Date, cancellationToken);
 
                 if (predyesterday == null)
-                    throw new ApplicationExcption("该股票在该日期之前的行情数据不存在，无法计算缺失数据");
+                    throw new BizException("该股票在该日期之前的行情数据不存在，无法计算缺失数据");
 
                 if (!dto.ClosingPrice.HasValue)
                 {
                     if (dto.Gain.HasValue)
                         dto.ClosingPrice = predyesterday.ClosingPrice * (1 + dto.Gain!.Value);
                     else
-                        throw new ApplicationExcption("收盘价未录入或无法计算得出");
+                        throw new BizException("收盘价未录入或无法计算得出");
                 }
 
                 if (!dto.PreClosingPrice.HasValue)
@@ -71,7 +71,7 @@ namespace StockMock.Service.Areas.Stocks.Services
                     if (dto.ClosingPrice.HasValue && dto.PreClosingPrice.HasValue)
                         dto.Gain = (dto.ClosingPrice.Value - dto.PreClosingPrice.Value) / dto.PreClosingPrice.Value;
                     else
-                        throw new ApplicationExcption("收盘价或昨日收盘价未录入，无法计算得出");
+                        throw new BizException("收盘价或昨日收盘价未录入，无法计算得出");
                 }
 
                 await ValidateAsync(dto, false, cancellationToken);
@@ -85,9 +85,9 @@ namespace StockMock.Service.Areas.Stocks.Services
         public async Task<StockDateDto> GetAsync(long Id, CancellationToken cancellationToken = default)
         {
             if (Id <= 0)
-                throw new ApplicationExcption("Id不合法");
+                throw new BizException("Id不合法");
 
-            var old = await _context.StockDates.FindAsync([Id], cancellationToken) ?? throw new ApplicationExcption("没有找到该行情数据");
+            var old = await _context.StockDates.FindAsync([Id], cancellationToken) ?? throw new BizException("没有找到该行情数据");
             return _mapper.Map<StockDateDto>(old);
         }
 
@@ -95,7 +95,7 @@ namespace StockMock.Service.Areas.Stocks.Services
         {
             await ValidateAsync(dto, false, cancellationToken);
 
-            var old = await _context.StockDates.FindAsync([dto.Id], cancellationToken) ?? throw new ApplicationExcption("该股票在该日期的行情数据不存在，无法删除");
+            var old = await _context.StockDates.FindAsync([dto.Id], cancellationToken) ?? throw new BizException("该股票在该日期的行情数据不存在，无法删除");
             old = _mapper.Map(dto, old);
             _context.StockDates.Update(old);
             await _context.SaveChangesAsync(cancellationToken);
@@ -104,12 +104,12 @@ namespace StockMock.Service.Areas.Stocks.Services
         public async Task DeleteAsync(string idText, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(idText))
-                throw new ApplicationExcption("没有需要删除的行情数据");
+                throw new BizException("没有需要删除的行情数据");
 
             var ids = idText.TrySplit<long>();
             var olds = await _context.StockDates.Where(e => ids.Contains(e.Id)).ToListAsync(cancellationToken);
             if (olds.Count == 0)
-                throw new ApplicationExcption("没有找到要删除的行情数据");
+                throw new BizException("没有找到要删除的行情数据");
 
             _context.StockDates.RemoveRange(olds);
             await _context.SaveChangesAsync(cancellationToken);
@@ -125,7 +125,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             var validationResult = await validator.ValidateAsync(pageDto, cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new ApplicationExcption(validationResult.Errors.ToMessage());
+                throw new BizException(validationResult.Errors.ToMessage());
 
             var queryable = _context.StockDates.Where(pageDto.GetWhereLamda());
             var pageList = await pageDto.LoadAsync(queryable, cancellationToken);
@@ -144,15 +144,15 @@ namespace StockMock.Service.Areas.Stocks.Services
             {
                 rows = await ExcelUtil.ReadExcelAsync<StockDateDto>(stream, fileName, cancellationToken: cancellationToken);
                 if (rows == null || !rows.Any())
-                    throw new ApplicationExcption("没有找到有效数据");
+                    throw new BizException("没有找到有效数据");
             }
             catch (Exception ex)
             {
-                throw new ApplicationExcption(ex.Message);
+                throw new BizException(ex.Message);
             }
 
             if (rows.Count() > 2000)
-                throw new ApplicationExcption("一次性导入数据不能超过2000条");
+                throw new BizException("一次性导入数据不能超过2000条");
 
             var lamda = LinqKit.PredicateBuilder.New<StockDate>(true);
 

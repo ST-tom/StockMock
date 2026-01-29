@@ -21,7 +21,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             var validationResult = await validator.ValidateAsync(dto, cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new ApplicationExcption(validationResult.Errors.ToMessage());
+                throw new BizException(validationResult.Errors.ToMessage());
         }
 
         public async Task AddAsync(AccountStockDto dto, CancellationToken cancellationToken = default)
@@ -30,7 +30,7 @@ namespace StockMock.Service.Areas.Stocks.Services
 
             var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, cancellationToken);
             if (old != null)
-                throw new ApplicationExcption("该股票已经添加，请勿重复添加");
+                throw new BizException("该股票已经添加，请勿重复添加");
 
             await _context.AccountStocks.AddAsync(_mapper.Map<AccountStock>(dto), cancellationToken);
 
@@ -45,9 +45,9 @@ namespace StockMock.Service.Areas.Stocks.Services
         {
             await ValidateAsync(dto, false, cancellationToken);
 
-            var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, cancellationToken) ?? throw new ApplicationExcption("该股票尚未添加");
+            var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, cancellationToken) ?? throw new BizException("该股票尚未添加");
             if (!old.IsEnabled)
-                throw new ApplicationExcption("该股票为禁用状态无需禁用");
+                throw new BizException("该股票为禁用状态无需禁用");
 
             old.IsEnabled = true;
             _context.AccountStocks.Update(old);
@@ -59,7 +59,7 @@ namespace StockMock.Service.Areas.Stocks.Services
         {
             await ValidateAsync(dto, false, cancellationToken);
 
-            var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, cancellationToken) ?? throw new ApplicationExcption("该股票尚未添加");
+            var old = await _context.AccountStocks.FirstOrDefaultAsync(e => e.StockCode == dto.Code, cancellationToken) ?? throw new BizException("该股票尚未添加");
             _context.AccountStocks.Remove(old);
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -75,7 +75,7 @@ namespace StockMock.Service.Areas.Stocks.Services
             var validationResult = await validator.ValidateAsync(pageDto, cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new ApplicationExcption(validationResult.Errors.ToMessage());
+                throw new BizException(validationResult.Errors.ToMessage());
 
             var queryable = _context.AccountStocks.Where(pageDto.GetWhereLamda());
             var pageList = await pageDto.LoadAsync(queryable, cancellationToken);

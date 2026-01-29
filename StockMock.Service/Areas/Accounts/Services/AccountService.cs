@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using StockMock.Core.Accounts;
 using StockMock.Data;
 using StockMock.Service.Areas.Accounts.Dtos;
 using StockMock.Service.FluentValidation;
@@ -28,54 +27,23 @@ namespace StockMock.Service.Areas.Accounts.Services
         /// <param name="dto"></param>
         /// <param name="ip"></param>
         /// <returns></returns>
-        public string GetCacheKeyLoginTryCount(LoginDto dto, string ip) => $"account.login.trycount:{ip}:{dto.LoginAccount}";
+        private string GetCacheKeyLogInTryCount(LogInDto dto, string ip) => $"account.login.trycount:{ip}:{dto.LogInAccount}";
 
-        /// <summary>
-        /// 验证登录模型
-        /// </summary>
-        /// <param name="dto"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<string> CheckLoginDto(LoginDto dto, CancellationToken cancellationToken = default)
+        public async Task<(string, string)> LogIn(string ip, LogInDto dto, CancellationToken cancellationToken = default)
         {
-            LoginDtoValidator validator = new();
+            LogInDtoValidator validator = new();
             var validationResult = await validator.ValidateAsync(dto, cancellationToken);
             if (!validationResult.IsValid)
-                return validationResult.Errors.ToMessage();
+                throw new BizException(validationResult.Errors.ToMessage());
 
-            return string.Empty;
-        }
-
-        /// <summary>
-        /// 校验登录尝试次数
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public bool CheckRetryCount(string key)
-        {
+            var key = GetCacheKeyLogInTryCount(dto, ip);
             var tryCount = _globalCache.Get<int>(key);
             if (tryCount >= 5)
-                return false;
+                throw new BizException("登录尝试次数过多，请稍后再试");
 
             _globalCache.Set(key, tryCount + 1);
 
-            return true;
-        }
-
-        /// <summary>
-        /// 根据账号密码获取用户
-        /// </summary>
-        /// <param name="dto"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<Account?> GetByAccountAndPassword(LoginDto dto, CancellationToken cancellationToken = default) => await _context.Accounts.FirstOrDefaultAsync(x => x.LoginAccount == dto.LoginAccount && x.Password == EncryptionUtil.ToMD5(dto.Password), cancellationToken);
-
-        public async Task<(string, string)> CreatTokens(Account account, string key, CancellationToken cancellationToken = default)
-        {
-            if (account == null)
-                return (string.Empty, string.Empty);
-
+            var account = await _context.Accounts.FirstOrDefaultAsync(x => x.LoginAccount == dto.LogInAccount && x.Password == EncryptionUtil.ToMD5(dto.Password), cancellationToken) ?? throw new BizException("用户不存在或密码有误");
             var (token, refreToken) = _jwtManager.NewTokenAndRefreshToken(account.Id, account.Name, [new Claim(ClaimTypes.Role, account.Role.GetDescription())]);
 
             account.LastLoginTime = DateTime.Now;

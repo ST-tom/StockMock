@@ -26,7 +26,7 @@ namespace StockMock.Service.Areas.Configs.Services
             var validationResult = await validator.ValidateAsync(dto, cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new ApplicationExcption(validationResult.Errors.ToMessage());
+                throw new BizException(validationResult.Errors.ToMessage());
         }
 
         public async Task AddAsync(DayDto dto, CancellationToken cancellationToken = default)
@@ -35,7 +35,7 @@ namespace StockMock.Service.Areas.Configs.Services
 
             var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, cancellationToken);
             if (old != null)
-                throw new ApplicationExcption("该日期已存在，请勿重复添加");
+                throw new BizException("该日期已存在，请勿重复添加");
 
             _context.Days.Add(_mapper.Map<Day>(dto));
             await _context.SaveChangesAsync(cancellationToken);
@@ -45,18 +45,18 @@ namespace StockMock.Service.Areas.Configs.Services
         public async Task<DayDto> GetAsync(long id, CancellationToken cancellationToken = default)
         {
             if (id <= 0)
-                throw new ApplicationExcption("Id不合法");
+                throw new BizException("Id不合法");
 
             var old = await _context.Days.FindAsync([id], cancellationToken: cancellationToken);
 
-            return old == null ? throw new ApplicationExcption("该日期不存在") : _mapper.Map<DayDto>(old);
+            return old == null ? throw new BizException("该日期不存在") : _mapper.Map<DayDto>(old);
         }
 
         public async Task UpdateAsync(DayDto dto, CancellationToken cancellationToken = default)
         {
             await ValidateAsync(dto, cancellationToken);
 
-            var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, cancellationToken) ?? throw new ApplicationExcption("该日期不存在，请先添加");
+            var old = await _context.Days.FirstOrDefaultAsync(e => e.Date == dto.Date, cancellationToken) ?? throw new BizException("该日期不存在，请先添加");
             if (old.IsWorkDay != dto.IsWorkDay)
             {
                 old.IsWorkDay = dto.IsWorkDay;
@@ -76,7 +76,7 @@ namespace StockMock.Service.Areas.Configs.Services
         /// </summary>
         /// <param name="dto"></param>
         /// <returns></returns>
-        /// <exception cref="ApplicationExcption"></exception>
+        /// <exception cref="BizException"></exception>
         public async Task BuildYearDaysAsync(DayDto dto, CancellationToken cancellationToken = default)
         {
             await ValidateAsync(dto, cancellationToken);
@@ -85,11 +85,11 @@ namespace StockMock.Service.Areas.Configs.Services
             var dayDic = await _context.Days.Where(e => e.Date.Year == year).ToDictionaryAsync(e => e.Date, cancellationToken);
 
             if (dayDic.Count == 0)
-                throw new ApplicationExcption("该年份没有节日数据，请先添加特殊日期数据");
+                throw new BizException("该年份没有节日数据，请先添加特殊日期数据");
 
             var length = DateTime.IsLeapYear(year) ? 366 : 365;
             if (dayDic.Count == length)
-                throw new ApplicationExcption("该年份已有日期数据，请勿重复添加");
+                throw new BizException("该年份已有日期数据，请勿重复添加");
 
             var date = new DateOnly(year, 1, 1);
             for (int i = 0; i < length - 1; i++)
@@ -118,14 +118,14 @@ namespace StockMock.Service.Areas.Configs.Services
         /// </summary>
         /// <param name="pageDto"></param>
         /// <returns></returns>
-        /// <exception cref="ApplicationExcption"></exception>
+        /// <exception cref="BizException"></exception>
         public async Task<PageList<Day>> LoadAsync(DayPageDto pageDto, CancellationToken cancellationToken = default)
         {
             var validator = new DayPageDtoValidator();
             var validationResult = await validator.ValidateAsync(pageDto, cancellationToken);
 
             if (!validationResult.IsValid)
-                throw new ApplicationExcption(validationResult.Errors.ToMessage());
+                throw new BizException(validationResult.Errors.ToMessage());
 
             var queryable = _context.Days.Where(pageDto.GetWhereLamda());
             var pageList = await pageDto.LoadAsync(queryable, cancellationToken);
@@ -163,7 +163,7 @@ namespace StockMock.Service.Areas.Configs.Services
         /// </summary>
         /// <param name="date"></param>
         /// <returns></returns>
-        /// <exception cref="ApplicationExcption"></exception>
+        /// <exception cref="BizException"></exception>
         public DateOnly GetPreWorkDay(DateOnly? date = default)
         {
             date ??= DateTimeUtil.GetToday();
@@ -175,7 +175,7 @@ namespace StockMock.Service.Areas.Configs.Services
             } while (preDay != default && !preDay.IsWorkDay);
 
             if (preDay == default)
-                throw new ApplicationExcption("未能获取前一个工作日，请补充工作日信息");
+                throw new BizException("未能获取前一个工作日，请补充工作日信息");
 
             return preDay.Date;
         }
@@ -185,7 +185,7 @@ namespace StockMock.Service.Areas.Configs.Services
         /// </summary>
         /// <param name="date"></param>
         /// <returns></returns>
-        /// <exception cref="ApplicationExcption"></exception>
+        /// <exception cref="BizException"></exception>
         public List<DateOnly> GetPreWorkDays(DateOnly? date = default, int dayRange = 30)
         {
             date ??= DateTimeUtil.GetToday();
@@ -210,7 +210,7 @@ namespace StockMock.Service.Areas.Configs.Services
         /// </summary>
         /// <param name="date"></param>
         /// <returns></returns>
-        /// <exception cref="ApplicationExcption"></exception>
+        /// <exception cref="BizException"></exception>
         public DateOnly GetNextWorkDay(DateOnly? date = default)
         {
             date ??= DateTimeUtil.GetToday();
@@ -222,7 +222,7 @@ namespace StockMock.Service.Areas.Configs.Services
             } while (nextDay != default && !nextDay.IsWorkDay);
 
             if (nextDay == default)
-                throw new ApplicationExcption("未能获取下一个工作日，请补充工作日信息");
+                throw new BizException("未能获取下一个工作日，请补充工作日信息");
 
             return nextDay.Date;
         }

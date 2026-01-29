@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using StockMock.Service.Areas.Accounts.Dtos;
 using StockMock.Service.Areas.Accounts.Services;
 using TS.Shared.Extension;
@@ -9,31 +8,19 @@ namespace StockMock.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class LoginController(AccountService accountService) : IpControllerBase
+    public class LogInController(AccountService accountService) : IpControllerBase
     {
         private readonly AccountService _accountService = accountService;
 
         [HttpPost]
-        public async Task<IActionResult> Login([FromBody] LoginDto loginDto, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> LogIn([FromBody] LogInDto loginDto, CancellationToken cancellationToken = default)
         {
-            var errmsg = await _accountService.CheckLoginDto(loginDto, cancellationToken);
-            if(errmsg.IsNotNullOrEmpty())
-                return ApiResult.Err(errmsg);
-
-            var key = _accountService.GetCacheKeyLoginTryCount(loginDto, GetIpAddress());
-            if (!_accountService.CheckRetryCount(key))
-                return ApiResult.Err("登录失败次数过多，请稍后再试");
-
-            var account = await _accountService.GetByAccountAndPassword(loginDto, cancellationToken);
-            if (account == null)
-                return ApiResult.Err("用户名或密码错误");
-            
-            var (token, refreshToken) = await _accountService.CreatTokens(account, key, cancellationToken);
+            var (token, refreshToken) = await _accountService.LogIn(this.GetIpAddress(), loginDto, cancellationToken);
             return ApiResult.OK((token, refreshToken));
         }
 
         [HttpPost]
-        public async Task<IActionResult> LogOut(string accessToken)
+        public async Task<IActionResult> RemoveToken(string accessToken)
         {
             if(accessToken.IsNullOrEmpty())
                 return ApiResult.Err("请提供有效的access_token");
