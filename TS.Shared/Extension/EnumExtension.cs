@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Reflection;
 
 namespace TS.Shared.Extension
@@ -28,11 +28,10 @@ namespace TS.Shared.Extension
         public static Dictionary<int, string> ToDictionary(this Type t)
         {
             Dictionary<int, string> dic = [];
-            Type enumType = t.GetType();
-            var fieldstrs = Enum.GetNames(enumType);
+            var fieldstrs = Enum.GetNames(t);
             foreach (var fieldstr in fieldstrs)
             {
-                var field = enumType.GetField(fieldstr);
+                var field = t.GetField(fieldstr);
                 string description;
 
                 if (field == null)
@@ -43,7 +42,7 @@ namespace TS.Shared.Extension
                 else
                     description = fieldstr;  //描述不存在取字段名称
 
-                dic.Add((int)Enum.Parse(enumType, fieldstr), description);
+                dic.Add((int)Enum.Parse(t, fieldstr), description);
             }
             return dic;
         }

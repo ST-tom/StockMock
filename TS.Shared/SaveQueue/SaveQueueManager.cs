@@ -90,7 +90,7 @@ namespace TS.Shared.SaveQueue
             if (_saveTask != null)
                 return;
 
-            _saveTask = WhileRunTask(cancellationToken);
+            _saveTask = WhileRunTask(cancellationToken);           
         }
 
         /// <summary>

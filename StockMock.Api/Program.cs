@@ -1,9 +1,15 @@
+using Serilog;
 using StockMock.Api;
 using StockMock.Api.Middleware;
 using StockMock.Data;
 using StockMock.Service;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration)
+);
 
 // Add services to the container. 
 
@@ -29,7 +35,6 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles(new StaticFileOptions
 {
-    //ÉèÖÃ²»ÏŞÖÆcontent-type
     ServeUnknownFileTypes = true
 });
 
@@ -38,8 +43,11 @@ app.UseGlobalException();
 app.UseRouting();
 
 app.UseAuthentication();
-//ÊÚÈ¨
+//ï¿½ï¿½È¨
 app.UseAuthorization();
+
+// å‘æ—¥å¿—æ·»åŠ ç”¨æˆ·ä¿¡æ¯
+app.UseSerilogUser();
 
 app.MapControllerRoute(
     name: "areas",
