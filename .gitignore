@@ -427,3 +427,6 @@ FodyWeavers.xsd
 *.msm
 *.msp
 /StockMock.Api/wwwroot
+/.codebuddy
+/.comate/rules
+/.trae
