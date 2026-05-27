@@ -1,16 +1,11 @@
 using Serilog.Context;
-using TS.Shared.User;
+using StockMock.Core;
 
 namespace StockMock.Api.Middleware
 {
-    public class SerilogUserMiddleware
+    public class SerilogUserMiddleware(RequestDelegate next)
     {
-        private readonly RequestDelegate _next;
-
-        public SerilogUserMiddleware(RequestDelegate next)
-        {
-            _next = next;
-        }
+        private readonly RequestDelegate _next = next;
 
         public async Task Invoke(HttpContext context, IUser user)
         {

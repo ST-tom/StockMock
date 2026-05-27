@@ -1,4 +1,6 @@
-﻿namespace TS.Shared.User
+﻿using StockMock.Core.Accounts;
+
+namespace StockMock.Core
 {
     public interface IUser
     {
@@ -6,6 +8,6 @@
 
         public string? Name { get; set; }
 
-        public IEnumerable<string> Roles { get; set; }
+        public AccountRole Role { get; set; }
     }
 }

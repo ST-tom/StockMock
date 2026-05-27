@@ -45,7 +45,7 @@ namespace TS.Shared.Util
         /// <returns></returns>
         public static async Task SaveFileAsync(string? filePath, string? fileName, string? content, FileType fileType = FileType.Json, Encoding? encoding = null, int bufferSize = 4096, CancellationToken cancellationToken = default)
         {
-            if (content.IsNullOrEmpty())
+            if (content == null)
                 return;
 
             filePath = filePath?.Trim();

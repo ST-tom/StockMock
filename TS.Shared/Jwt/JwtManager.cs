@@ -12,7 +12,7 @@ namespace TS.Shared.Jwt
     {
         private DateTime _lastScanTime = DateTime.Now;
 
-        private readonly ConcurrentDictionary<string, JwtRefreshToken> _refreshTokenDic = new();
+        private readonly ConcurrentDictionary<long, JwtRefreshToken> _refreshTokenDic = new();
 
         protected readonly IConfigurationSection _jwtSetting = config.GetSection("JwtSettings");
 
@@ -67,7 +67,7 @@ namespace TS.Shared.Jwt
             var accessToken = NewToken(id, name, claims);
 
             var refreshToken = JwtRefreshToken.New(id, TimeSpan.FromDays(_jwtSetting.GetValue<double>("RefreshExpiresDays")));
-            _refreshTokenDic.AddOrUpdate(refreshToken.Token, refreshToken, (id, token) => refreshToken);
+            _refreshTokenDic.AddOrUpdate(id, refreshToken, (id, token) => refreshToken);
 
             return (accessToken, refreshToken.Token);
         }
@@ -79,19 +79,36 @@ namespace TS.Shared.Jwt
         /// <param name="claims"></param>
         /// <param name="refreshToken"></param>
         /// <returns></returns>
-        public long CheckRefreshToken(long id, string refreshToken)
+        public string GetRefreshToken(long id)
         {
             ScanRefreshTokenDic();
 
-            if (_refreshTokenDic.TryGetValue(refreshToken, out var refreshTokenInfo) && refreshTokenInfo.UserId == id && refreshTokenInfo.ExpiredTime > DateTime.Now)
-                return refreshTokenInfo.UserId;
+            if (_refreshTokenDic.TryGetValue(id, out var refreshTokenInfo) && refreshTokenInfo.ExpiredTime > DateTime.Now)
+                return refreshTokenInfo.Token;
 
-            return 0;
+            return string.Empty;
         }
 
-        public void RemoveRefreshToken(string refreshToken)
+        /// <summary>
+        /// 校验 Refersh Token
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="claims"></param>
+        /// <param name="refreshToken"></param>
+        /// <returns></returns>
+        public bool CheckRefreshToken(long id, string refreshToken)
         {
-            _refreshTokenDic.TryRemove(refreshToken, out _);
+            ScanRefreshTokenDic();
+
+            if (_refreshTokenDic.TryGetValue(id, out var refreshTokenInfo) && refreshTokenInfo.Token == refreshToken && refreshTokenInfo.ExpiredTime > DateTime.Now)
+                return true;
+
+            return false;
+        }
+
+        public void RemoveRefreshToken(long id)
+        {
+            _refreshTokenDic.TryRemove(id, out _);
         }
 
         private void ScanRefreshTokenDic()
@@ -101,7 +118,7 @@ namespace TS.Shared.Jwt
 
             _lastScanTime = DateTime.Now;
 
-            var removeTokens = new List<string>();
+            var removeTokens = new List<long>();
 
             foreach (var refreshToken in _refreshTokenDic)
             {

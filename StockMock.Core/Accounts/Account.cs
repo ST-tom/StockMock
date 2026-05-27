@@ -14,13 +14,13 @@ namespace StockMock.Core.Accounts
         public DateTime? LastLoginTime { get; set; }
 
         public AccountRole Role { get; set; }
+
+        public bool IsEnabled { get; set; } = true;
     }
 
-    public enum AccountRole 
+    public enum AccountRole
     {
-        [Description("管理员")]
-        Admin,
-        [Description("用户")]
-        User, 
+        管理员,
+        用户,
     }
 }

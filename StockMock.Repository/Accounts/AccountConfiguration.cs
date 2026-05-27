@@ -16,10 +16,13 @@ namespace StockMock.Data.Accounts
                 Password = EncryptionUtil.ToMD5("123456"),
                 Name = AccountRole.Admin.GetDescription(),
                 Role = AccountRole.Admin,
+                IsEnabled = true,
             });
 
             //用于添加Fluent Api配置
 
+            // 配置索引
+            entitys.HasIndex(x => x.IsEnabled);
         }
     }
 }

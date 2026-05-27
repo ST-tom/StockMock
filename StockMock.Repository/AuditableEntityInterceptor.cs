@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using StockMock.Core;
-using TS.Shared.User;
 
 namespace StockMock.Data
 {

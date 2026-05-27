@@ -1,12 +1,57 @@
-﻿using System.Collections.Concurrent;
+﻿using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using TS.Shared.Json;
+using TS.Shared.Query;
 using TS.Shared.Util;
 
 namespace TS.Shared.SaveQueue
 {
-    public class SaveQueueManager<T>(ISaveQueueProvider<T> provider) : IAsyncDisposable
+    public class SaveQueueOptions
+    {
+        /// <summary>
+        /// 批次大小
+        /// </summary>
+        public int BatchSize { get; set; } = 1000;
+
+        /// <summary>
+        /// 重试限制
+        /// </summary>
+        public int RetryLimit { get; set; } = 3;
+
+        /// <summary>
+        /// 最大队列大小
+        /// </summary>
+        public int? MaxQueueSize { get; set; } = null;
+
+        /// <summary>
+        /// 队列扫描间隔
+        /// </summary>
+        public TimeSpan ScanInterval { get; set; } = TimeSpan.FromSeconds(5);
+
+        /// <summary>
+        /// 失败数据文件保存路径
+        /// </summary>
+        public string FailureFilePath { get; set; } = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files", "SaveQueue_Error");
+
+        public static SaveQueueOptions DefaultOptions => new()
+        {
+            MaxQueueSize = 20000,
+        };
+    }
+
+    public class SaveQueueManager<T, TType>(ILogger<TType> logger, ISaveQueueProvider<T> provider) : IAsyncDisposable
         where T : class
     {
+        #region 内部字段
+
+        private readonly ILogger<TType> _logger = logger;
+
+        protected readonly ISaveQueueProvider<T> provider = provider ?? throw new ArgumentNullException(nameof(provider));
+
+        private readonly SaveQueueOptions _saveQueueOptions = SaveQueueOptions.DefaultOptions;
+
+        private readonly Lock _lock = new();
+   
         /// <summary>
         /// 定时器
         /// </summary>
@@ -28,34 +73,20 @@ namespace TS.Shared.SaveQueue
         private readonly ConcurrentQueue<T> _queue = new();
 
         /// <summary>
-        /// 批量保存的队列
+        /// 批量重试的队列
         /// </summary>
         private readonly ConcurrentQueue<(T data, int retryCount)> _retryQueue = new();
 
-        /// <summary>
-        /// 批次大小
-        /// </summary>
-        protected virtual int BatchSize { get; set; } = 1000;
+        #endregion
 
-        /// <summary>
-        /// 重试限制
-        /// </summary>
-        protected virtual int RetryLimit { get; set; } = 3;
+        #region 构造函数
 
-        /// <summary>
-        /// 最大队列大小
-        /// </summary>
-        protected virtual int? MaxQueueSize { get; set; } = null;
+        public SaveQueueManager(ILogger<TType> logger, ISaveQueueProvider<T> provider, SaveQueueOptions saveQueueOptions) : this(logger, provider)
+        {
+            _saveQueueOptions = saveQueueOptions;
+        }
 
-        /// <summary>
-        /// 队列扫描间隔
-        /// </summary>
-        protected virtual TimeSpan ScanInterval { get; set; } = TimeSpan.FromSeconds(5);
-
-        /// <summary>
-        /// 保存提供者
-        /// </summary>
-        protected readonly ISaveQueueProvider<T> provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        #endregion
 
         /// <summary>
         /// 插入数据
@@ -68,12 +99,17 @@ namespace TS.Shared.SaveQueue
             if (record == null)
                 return true;
 
-            if (_queue.Count >= MaxQueueSize)
+            if (_queue.Count >= _saveQueueOptions.MaxQueueSize)
+                await ExcuteSaveAsync();
+
+            if (_queue.Count >= _saveQueueOptions.MaxQueueSize)
+            {
                 return false;
+            }
 
             _queue.Enqueue(record);
 
-            if (_queue.Count >= BatchSize)
+            if (_queue.Count >= _saveQueueOptions.BatchSize)
                 await ExcuteSaveAsync();
 
             return true;
@@ -86,11 +122,19 @@ namespace TS.Shared.SaveQueue
         /// <returns></returns>
         public async Task StartAsync(CancellationToken cancellationToken = default)
         {
-            //已启动task任务，无需重复启动
-            if (_saveTask != null)
-                return;
+            lock (_lock)
+            {
+                //已启动task任务，无需重复启动
+                if (_saveTask != null)
+                    return;
+            }
 
-            _saveTask = WhileRunTask(cancellationToken);           
+            _taskTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _periodicTimer = new PeriodicTimer(_saveQueueOptions.ScanInterval);
+            var linkedToken = _taskTokenSource.Token;
+
+            _saveTask = AutoSaveTask(linkedToken);
+            await _saveTask.ConfigureAwait(false);
         }
 
         /// <summary>
@@ -98,37 +142,29 @@ namespace TS.Shared.SaveQueue
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task WhileRunTask(CancellationToken cancellationToken)
+        private async Task AutoSaveTask(CancellationToken cancellationToken)
         {
-            _taskTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            _periodicTimer = new PeriodicTimer(ScanInterval);
-            var linkedToken = _taskTokenSource.Token;
-
             try
             {
                 //固定间隔执行
-                while (await _periodicTimer.WaitForNextTickAsync(linkedToken) && !linkedToken.IsCancellationRequested)
+                while (await _periodicTimer!.WaitForNextTickAsync(cancellationToken))
                 {
                     var excuteTask = ExcuteSaveAsync();
-                    var retryTask = RetrySaveAsync();
+                    var retryTask = ExcuteRetrySaveAsync();
 
                     await Task.WhenAll(excuteTask, retryTask);
                 }
             }
-            catch (OperationCanceledException ex) when (ex.CancellationToken == linkedToken)
-            {
-                
-            }
             catch (OperationCanceledException)
             {
-                //外部取消，处理剩余队列数据即可，不抛出异常
-                await SaveAllQueueAsync();
             }
             catch (Exception)
             {
-                //未知异常，处理剩余队列数据，抛出异常
-                await SaveAllQueueAsync();
                 throw;
+            }
+            finally
+            {
+                await SaveAllQueueAsync();
             }
         }
 
@@ -145,8 +181,6 @@ namespace TS.Shared.SaveQueue
                 await _saveTask;
                 _saveTask = null;
             }
-
-            await SaveAllQueueAsync();
         }
 
         /// <summary>
@@ -156,7 +190,7 @@ namespace TS.Shared.SaveQueue
         private async Task ExcuteSaveAsync()
         {
             List<T> saveList = [];
-            while (saveList.Count < BatchSize && _queue.TryDequeue(out T? item))
+            while (saveList.Count < _saveQueueOptions.BatchSize && _queue.TryDequeue(out T? item))
             {
                 if (item != null)
                     saveList.Add(item);
@@ -180,10 +214,10 @@ namespace TS.Shared.SaveQueue
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task RetrySaveAsync()
+        private async Task ExcuteRetrySaveAsync()
         {
             List<(T data, int retryCount)> retryList = [];
-            while (retryList.Count < BatchSize && _retryQueue.TryDequeue(out var item))
+            while (retryList.Count < _saveQueueOptions.BatchSize && _retryQueue.TryDequeue(out var item))
                 retryList.Add(item);
 
             if (retryList.Count == 0)
@@ -197,7 +231,8 @@ namespace TS.Shared.SaveQueue
             catch (Exception)
             {
                 //可能是某条异常数据导致保存，需要一条条保存找出异常数据
-                retryList.ForEach(async item =>
+
+                var tasks = retryList.Select(async item =>
                 {
                     try
                     {
@@ -206,22 +241,32 @@ namespace TS.Shared.SaveQueue
                     catch (Exception)
                     {
                         item.retryCount++;
-                        if (item.retryCount < RetryLimit)
+                        if (item.retryCount < _saveQueueOptions.RetryLimit)
                             _retryQueue.Enqueue(item);
                         else
                             errList.Add(item.data);
                     }
                 });
+                await Task.WhenAll(tasks);
             }
             finally
             {
                 if (errList.Count > 0)
-                    await SaveToFile(errList);               
+                {
+                    try
+                    {
+                        await SaveToFile(errList);
+                    }
+                    catch
+                    {
+                        _logger.LogError("批量保存队列{TType}保存失败写入重试文件也失败，异常数据：{errList}", nameof(TType), errList.ToJsonString());
+                    }
+                }
             }
         }
 
         /// <summary>
-        /// 保存所有队列数据
+        /// 保存队列所有剩余数据
         /// </summary>
         /// <returns></returns>
         private async Task SaveAllQueueAsync()
@@ -232,7 +277,7 @@ namespace TS.Shared.SaveQueue
                 if (item != null)
                     saveList.Add(item);
 
-                if (saveList.Count < BatchSize)
+                if (saveList.Count < _saveQueueOptions.BatchSize)
                     continue;
 
                 try
@@ -251,7 +296,7 @@ namespace TS.Shared.SaveQueue
                 if (item != null)
                     saveList.Add(item);
 
-                if (saveList.Count < BatchSize)
+                if (saveList.Count < _saveQueueOptions.BatchSize)
                     continue;
 
                 try
@@ -277,7 +322,7 @@ namespace TS.Shared.SaveQueue
             }
         }
 
-        private static async Task SaveToFile(IEnumerable<T> saveList) => await FileUtil.SaveFileAsync(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files", "SaveQueue_Error"), FileUtil.GetExtDateTimeGuidFileName($"{typeof(T).Name}"), saveList.ToJsonString(), cancellationToken: CancellationToken.None);
+        private async Task SaveToFile(IEnumerable<T> saveList) => await FileUtil.SaveFileAsync(_saveQueueOptions.FailureFilePath, FileUtil.GetExtDateTimeGuidFileName($"{typeof(T).Name}"), saveList.ToJsonString(), cancellationToken: CancellationToken.None);
 
         public async ValueTask DisposeAsync()
         {

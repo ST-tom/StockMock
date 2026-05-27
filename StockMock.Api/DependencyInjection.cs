@@ -2,11 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using StockMock.Api.User;
+using StockMock.Core;
 using StockMock.Core.Accounts;
 using System.Text;
 using TS.Shared.Extension;
 using TS.Shared.Json;
-using TS.Shared.User;
 using TS.Shared.WebApi;
 
 namespace StockMock.Api

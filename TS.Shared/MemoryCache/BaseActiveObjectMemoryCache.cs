@@ -21,13 +21,7 @@ namespace TS.Shared.MemoryCache
         {
             get
             {
-                MemoryCacheEntryOptions options = new()
-                {
-                    Size = Size, //每份缓存所占的大小      
-                    Priority = CacheItemPriority.Normal,
-                    SlidingExpiration = SlidingExpireTime,
-                    AbsoluteExpirationRelativeToNow = AbsoluteExpireTime,
-                };
+                MemoryCacheEntryOptions options = DefaultCahceEntryOptions;
 
                 if (IsAutoRefreshExpired && QueryKeyDataFunc != default)
                 {

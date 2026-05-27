@@ -20,13 +20,9 @@ namespace StockMock.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RemoveToken(string accessToken)
+        public IActionResult RemoveToken()
         {
-            if(accessToken.IsNullOrEmpty())
-                return ApiResult.Err("请提供有效的access_token");
-
-            _accountService.RemoveToken(accessToken);
-
+            _accountService.RemoveToken();
             return ApiResult.OK();
         }
 

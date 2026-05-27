@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using TS.Shared.Excption;
 using TS.Shared.Extension;
 using TS.Shared.Json;
 

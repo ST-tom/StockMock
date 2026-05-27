@@ -43,7 +43,6 @@ app.UseGlobalException();
 app.UseRouting();
 
 app.UseAuthentication();
-//��Ȩ
 app.UseAuthorization();
 
 // 向日志添加用户信息

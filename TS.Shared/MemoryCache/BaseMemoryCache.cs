@@ -17,26 +17,6 @@ namespace TS.Shared.MemoryCache
         }
 
         /// <summary>
-        /// 缓存大小限制
-        /// </summary>
-        protected virtual int SizeLimet { get; set; } = 10240;
-
-        /// <summary>
-        /// 一份缓存所占大小
-        /// </summary>
-        protected virtual int Size { get; set; } = 1;
-
-        /// <summary>
-        /// 缓存滑动过期时间
-        /// </summary>
-        protected virtual TimeSpan SlidingExpireTime { get; set; } = TimeSpan.FromMinutes(30);
-
-        /// <summary>
-        /// 缓存绝对过期时间
-        /// </summary>
-        protected virtual TimeSpan AbsoluteExpireTime { get; set; } = TimeSpan.FromHours(6);
-
-        /// <summary>
         /// 缓存配置
         /// </summary>
         protected virtual MemoryCacheOptions CacheOptions => DefaultCacheOptions;
@@ -47,7 +27,7 @@ namespace TS.Shared.MemoryCache
         private MemoryCacheOptions DefaultCacheOptions => new()
         {
             ExpirationScanFrequency = TimeSpan.FromMinutes(5),
-            SizeLimit = SizeLimet,
+            SizeLimit = 10240,
             CompactionPercentage = 0.05,//缓存回收百分比
         };
 
@@ -59,12 +39,12 @@ namespace TS.Shared.MemoryCache
         /// <summary>
         /// 绝对和滑动过期时间缓存配置
         /// </summary>
-        private MemoryCacheEntryOptions DefaultCahceEntryOptions => new()
+        protected MemoryCacheEntryOptions DefaultCahceEntryOptions => new()
         {
-            Size = Size, //每份缓存所占的大小      
+            Size = 1, //每份缓存所占的大小      
             Priority = CacheItemPriority.Normal,
-            SlidingExpiration = SlidingExpireTime,
-            AbsoluteExpirationRelativeToNow = AbsoluteExpireTime,
+            SlidingExpiration = TimeSpan.FromMinutes(30),
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6),
         };
 
         /// <summary>

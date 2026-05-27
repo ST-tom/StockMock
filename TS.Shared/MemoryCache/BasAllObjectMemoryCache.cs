@@ -24,9 +24,9 @@ namespace TS.Shared.MemoryCache
         /// </summary>
         private MemoryCacheEntryOptions AllRefreshCahceEntryOptions => new()
         {
-            Size = Size, //每份缓存所占的大小      
+            Size = 1, //每份缓存所占的大小      
             Priority = CacheItemPriority.Normal,
-            AbsoluteExpirationRelativeToNow = AbsoluteExpireTime,
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6),
         };
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace TS.Shared.MemoryCache
             {
                 try
                 {
-                    _taskTimer = new(AbsoluteExpireTime.Add(TimeSpan.FromMinutes(-5)));
+                    _taskTimer = new(CacheEntryOptions.AbsoluteExpireTime.Add(TimeSpan.FromMinutes(-5)));
                     while (await _taskTimer.WaitForNextTickAsync(_taskTokenSource.Token) && !_taskTokenSource.Token.IsCancellationRequested)
                     {
                         var data = await QueryDataFuncAsync(_taskTokenSource.Token);

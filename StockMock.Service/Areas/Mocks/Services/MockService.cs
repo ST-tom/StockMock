@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using StockMock.Core;
 using StockMock.Core.Mocks;
 using StockMock.Core.Stocks;
 using StockMock.Data;
@@ -10,7 +11,6 @@ using StockMock.Service.FluentValidation;
 using TS.Shared.Excption;
 using TS.Shared.Extension;
 using TS.Shared.Query;
-using TS.Shared.User;
 
 namespace StockMock.Service.Areas.Mocks.Services
 {

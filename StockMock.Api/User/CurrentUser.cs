@@ -1,6 +1,7 @@
-﻿using System.Security.Claims;
+﻿using StockMock.Core;
+using StockMock.Core.Accounts;
+using System.Security.Claims;
 using TS.Shared.Extension;
-using TS.Shared.User;
 
 namespace StockMock.Api.User
 {
@@ -12,14 +13,14 @@ namespace StockMock.Api.User
 
         public string? Name { get; set; }
 
-        public IEnumerable<string> Roles { get; set; }
+        public AccountRole Role { get; set; }
 
         public CurrentUser(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
             Id = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier).ToLong() ?? 0;
             Name = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name);
-            Roles = _httpContextAccessor.HttpContext?.User?.FindAll(ClaimTypes.Role).Select(x => x.Value) ?? [];
+            Role = Enum.Parse<AccountRole>(_httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.ToString()!);
         }
     }
 }
